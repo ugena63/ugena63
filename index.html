@@ -45,7 +45,7 @@
       <!-- Tarjeta Posición + Puntos -->
       <div id="quick-standing" class="bg-slate-800 border border-slate-700 rounded-xl p-3 flex justify-between items-center"></div>
 
-      <!-- Balance de Temporada (4 Columnas) -->
+      <!-- Balance de Temporada -->
       <div>
         <h2 class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">Balance de Temporada</h2>
         <div class="grid grid-cols-4 gap-2 text-center mb-2">
@@ -164,6 +164,19 @@
   <script>
     const ID_HOJA = "13hXI7RhIPz9SvvFghuCedKNm6aC-HxTdXkasN5afS8g";
 
+    // Si algún campo no se localiza bien con la búsqueda automática, puedes añadirlo aquí:
+    const MAPAS_PERSONALIZADOS = {
+      // Ejemplo: "UGENA - MPAL. UGENA": "https://maps.google.com/?q=40.1583,-3.8794"
+    };
+
+    function obtenerEnlaceMaps(nombreCampo) {
+      if (!nombreCampo || nombreCampo === "Por confirmar") return null;
+      if (MAPAS_PERSONALIZADOS[nombreCampo]) return MAPAS_PERSONALIZADOS[nombreCampo];
+      
+      // Búsqueda directa en Google Maps optimizada para instalaciones de fútbol
+      return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(nombreCampo + ' campo futbol')}`;
+    }
+
     let appData = { partidos: [], goleadores: [], clasificacion: [] };
     let chartResultadosInstance = null;
     let chartGoleadoresInstance = null;
@@ -254,6 +267,7 @@
       const p = proximos[0];
       const esLocal = (p.local || "").toUpperCase().includes('UGENA');
       const rival = esLocal ? p.visitante : p.local;
+      const urlMaps = obtenerEnlaceMaps(p.campo);
 
       container.innerHTML = `
         <div class="flex justify-between items-baseline mb-1">
@@ -261,9 +275,14 @@
           <span class="text-xs bg-sky-950/70 border border-sky-400/30 px-2 py-0.5 rounded text-white font-medium">${p.fecha} ${p.hora ? '· ' + p.hora : ''}</span>
         </div>
         <div class="text-base font-extrabold text-white">${esLocal ? 'En Casa vs ' + rival : 'Fuera vs ' + rival}</div>
-        <div class="text-[11px] text-sky-100 flex items-center gap-1 mt-2">
+        <div class="text-[11px] text-sky-100 flex items-center gap-1 mt-2.5">
           <span>📍</span>
-          <span class="truncate">${p.campo}</span>
+          ${urlMaps ? `
+            <a href="${urlMaps}" target="_blank" rel="noopener noreferrer" class="underline hover:text-white flex items-center gap-1 font-medium bg-black/20 px-2 py-0.5 rounded transition">
+              <span class="truncate max-w-[240px]">${p.campo}</span>
+              <span class="text-[9px] text-sky-300 font-bold uppercase tracking-wider">Abrir Maps ↗</span>
+            </a>
+          ` : `<span class="truncate">${p.campo}</span>`}
         </div>
       `;
     }
@@ -336,6 +355,8 @@
 
       lista.forEach(p => {
         const finalizado = p.estado === 'Finalizado';
+        const urlMaps = obtenerEnlaceMaps(p.campo);
+
         container.innerHTML += `
           <div class="bg-slate-800 border border-slate-700 rounded-xl p-3 shadow-sm">
             <div class="flex justify-between items-center text-[10px] text-slate-400 mb-2">
@@ -348,7 +369,10 @@
               <span class="truncate flex-1 text-right ${(p.visitante || '').toUpperCase().includes('UGENA') ? 'text-sky-300 font-bold' : 'text-slate-200'}">${p.visitante}</span>
             </div>
             <div class="text-[10px] text-slate-400 mt-2 truncate flex items-center justify-between border-t border-slate-700/50 pt-2">
-              <span class="truncate">📍 ${p.campo}</span>
+              <span class="truncate flex items-center gap-1">
+                <span>📍</span>
+                ${urlMaps ? `<a href="${urlMaps}" target="_blank" rel="noopener noreferrer" class="hover:text-sky-300 underline">${p.campo}</a>` : p.campo}
+              </span>
               ${p.urlActa ? `<a href="${p.urlActa}" target="_blank" class="text-sky-400 font-medium underline ml-2">Acta</a>` : ''}
             </div>
           </div>
