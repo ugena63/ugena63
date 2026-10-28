@@ -164,23 +164,29 @@
   <script>
     const ID_HOJA = "13hXI7RhIPz9SvvFghuCedKNm6aC-HxTdXkasN5afS8g";
 
-    // Si algún campo no se localiza bien con la búsqueda automática, puedes añadirlo aquí:
-    const MAPAS_PERSONALIZADOS = {
-      // Ejemplo: "UGENA - MPAL. UGENA": "https://maps.google.com/?q=40.1583,-3.8794"
-    };
-
-    function obtenerEnlaceMaps(nombreCampo) {
-      if (!nombreCampo || nombreCampo === "Por confirmar") return null;
-      if (MAPAS_PERSONALIZADOS[nombreCampo]) return MAPAS_PERSONALIZADOS[nombreCampo];
-      
-      // Búsqueda directa en Google Maps optimizada para instalaciones de fútbol
-      return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(nombreCampo + ' campo futbol')}`;
-    }
-
-    let appData = { partidos: [], goleadores: [], clasificacion: [] };
+    let appData = { partidos: [], goleadores: [], clasificacion: [], direcciones: {} };
     let chartResultadosInstance = null;
     let chartGoleadoresInstance = null;
     let soloGoleadoresUgena = true;
+
+    // Obtener enlace a Google Maps consultando la tabla de Direcciones
+    function obtenerEnlaceMaps(nombreCampo) {
+      if (!nombreCampo || nombreCampo === "Por confirmar") return null;
+
+      const clave = nombreCampo.trim().toUpperCase();
+      const destino = appData.direcciones[clave];
+
+      // Si existe en la hoja Direcciones
+      if (destino) {
+        if (destino.startsWith("http://") || destino.startsWith("https://")) {
+          return destino;
+        }
+        return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(destino)}`;
+      }
+
+      // Si no está registrado en Direcciones, busca con el nombre federativo
+      return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(nombreCampo + ' futbol')}`;
+    }
 
     async function descargarHojaGViz(nombreHoja) {
       const url = `https://docs.google.com/spreadsheets/d/${ID_HOJA}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(nombreHoja)}`;
@@ -197,11 +203,13 @@
 
     async function cargarDatos() {
       try {
-        const [filasPartidos, filasGoleadores, filasClasif, filasControl] = await Promise.all([
+        // Carga simultánea de las 5 pestañas
+        const [filasPartidos, filasGoleadores, filasClasif, filasControl, filasDirecciones] = await Promise.all([
           descargarHojaGViz("Partidos"),
           descargarHojaGViz("Goleadores"),
           descargarHojaGViz("Clasificacion"),
-          descargarHojaGViz("Control")
+          descargarHojaGViz("Control"),
+          descargarHojaGViz("Direcciones").catch(() => []) // Evita fallo si la hoja aún está vacía
         ]);
 
         const partidos = filasPartidos.map(r => ({
@@ -219,9 +227,19 @@
           gc: Number(r[8]) || 0, dif: Number(r[9]) || 0, esUgena: r[10] === "Sí"
         }));
 
+        // Mapeo clave (Columna A) -> Búsqueda Maps (Columna B)
+        const direcciones = {};
+        filasDirecciones.forEach(r => {
+          const clave = (r[0] || "").trim().toUpperCase();
+          const valor = (r[1] || "").trim();
+          if (clave && valor) {
+            direcciones[clave] = valor;
+          }
+        });
+
         const ultimaAct = filasControl.length > 0 ? filasControl[filasControl.length - 1][0] : "Hoy";
 
-        renderApp({ partidos, goleadores, clasificacion, ultimaAct });
+        renderApp({ partidos, goleadores, clasificacion, direcciones, ultimaAct });
       } catch (err) {
         mostrarError(err.message);
       }
