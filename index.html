@@ -28,7 +28,7 @@
     <!-- SINCRONIZACIÓN Y CONTADOR DE VERSIÓN -->
     <div class="flex flex-col items-end">
       <span id="txt-sync" class="text-[10px] bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full border border-slate-600">Conectando...</span>
-      <span id="txt-version" class="text-[9px] font-mono font-medium text-sky-400/80 mt-0.5 pr-1">v1.3.0</span>
+      <span id="txt-version" class="text-[9px] font-mono font-medium text-sky-400/80 mt-0.5 pr-1">v1.4.0</span>
     </div>
   </header>
 
@@ -174,12 +174,91 @@
 
   <script>
     const ID_HOJA = "13hXI7RhIPz9SvvFghuCedKNm6aC-HxTdXkasN5afS8g";
-    const APP_VERSION = "v1.3.0";
+    const APP_VERSION = "v1.4.0";
 
     let appData = { partidos: [], goleadores: [], clasificacion: [], direcciones: [] };
     let chartResultadosInstance = null;
     let chartGoleadoresInstance = null;
     let soloGoleadoresUgena = true;
+
+    // Coordenadas fijas para previsión (Comunidad de Madrid / Zona Sur)
+    const LATITUD_DEFECTO = 40.16; // Aprox. Ugena / Aranjuez / Pinto
+    const LONGITUD_DEFECTO = -3.88;
+
+    // Traduce los códigos de clima de Open-Meteo a emojis y texto
+    function interpretarClima(codigo) {
+      if (codigo === 0) return { emoji: "☀️", desc: "Despejado" };
+      if (codigo === 1 || codigo === 2) return { emoji: "⛅", desc: "Parcialmente nublado" };
+      if (codigo === 3) return { emoji: "☁️", desc: "Nublado" };
+      if (codigo >= 45 && codigo <= 48) return { emoji: "🌫️", desc: "Niebla" };
+      if (codigo >= 51 && codigo <= 67) return { emoji: "🌧️", desc: "Lluvia" };
+      if (codigo >= 71 && codigo <= 77) return { emoji: "❄️", desc: "Nieve" };
+      if (codigo >= 80 && codigo <= 82) return { emoji: "🌦️", desc: "Chubascos" };
+      if (codigo >= 95) return { emoji: "⛈️", desc: "Tormenta" };
+      return { emoji: "🌤️", desc: "Variable" };
+    }
+
+    // Llama a la API de Open-Meteo y muestra el tiempo en el DOM
+    async function cargarTiempoPrevisto(fechaStr, horaStr) {
+      const weatherContainer = document.getElementById("weather-container");
+      if (!weatherContainer) return;
+      if (!fechaStr || !horaStr) {
+        weatherContainer.innerHTML = `<span class="text-[10px] text-slate-400">Sin hora para previsión</span>`;
+        return;
+      }
+
+      // Convertir fecha de DD/MM/YYYY a YYYY-MM-DD
+      const partes = fechaStr.trim().split(/[\/\-]/);
+      let isoDate = "";
+      if (partes.length === 3) {
+        if (partes[0].length === 4) { isoDate = `${partes[0]}-${partes[1].padStart(2, '0')}-${partes[2].padStart(2, '0')}`; } 
+        else { isoDate = `${partes[2]}-${partes[1].padStart(2, '0')}-${partes[0].padStart(2, '0')}`; }
+      } else {
+        weatherContainer.innerHTML = `<span class="text-[10px] text-slate-400">Fecha inválida</span>`;
+        return;
+      }
+
+      // Formato ISO requerido para buscar en el JSON
+      let horaRedondeada = horaStr.split(":")[0];
+      if (horaRedondeada.length === 1) horaRedondeada = "0" + horaRedondeada;
+      const targetTimeISO = `${isoDate}T${horaRedondeada}:00`;
+
+      // Comprobar si está en los próximos 7 días
+      const hoy = new Date();
+      const fechaPartidoObj = new Date(isoDate);
+      const diferenciaDias = (fechaPartidoObj.getTime() - hoy.getTime()) / (1000 * 3600 * 24);
+
+      if (diferenciaDias < -1 || diferenciaDias > 7) {
+        weatherContainer.innerHTML = `<span class="text-[10px] text-slate-400">Pronóstico no disponible</span>`;
+        return;
+      }
+
+      try {
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${LATITUD_DEFECTO}&longitude=${LONGITUD_DEFECTO}&hourly=temperature_2m,precipitation_probability,weathercode&timezone=Europe%2FMadrid&forecast_days=8`;
+        const res = await fetch(url);
+        const data = await res.json();
+        
+        const idx = data.hourly.time.indexOf(targetTimeISO);
+        if (idx !== -1) {
+          const temp = Math.round(data.hourly.temperature_2m[idx]);
+          const prob = data.hourly.precipitation_probability[idx];
+          const code = data.hourly.weathercode[idx];
+          const clima = interpretarClima(code);
+
+          weatherContainer.innerHTML = `
+            <div class="flex items-center gap-2 bg-black/20 border border-white/10 px-2 py-1 rounded-md mt-2">
+              <span class="text-base" title="${clima.desc}">${clima.emoji}</span>
+              <span class="text-xs font-bold text-white">${temp}°C</span>
+              <span class="text-[10px] font-medium ${prob > 30 ? 'text-sky-300' : 'text-slate-300'}">💧 ${prob}% lluvia</span>
+            </div>
+          `;
+        } else {
+          weatherContainer.innerHTML = `<span class="text-[10px] text-slate-400">Pronóstico fuera de rango</span>`;
+        }
+      } catch (err) {
+        weatherContainer.innerHTML = `<span class="text-[10px] text-slate-400 text-rose-300">Error al cargar clima</span>`;
+      }
+    }
 
     function formatearFechaConDia(fechaStr, horaStr) {
       if (!fechaStr) return "";
@@ -239,7 +318,6 @@
       return encontrado || null;
     }
 
-    // Busca si ya se jugó el partido de la primera vuelta contra este rival
     function buscarPartidoPrevio(rivalNombre, jornadaActual) {
       if (!rivalNombre || !appData.partidos || appData.partidos.length === 0) return null;
       const rNorm = normalizarTexto(rivalNombre);
@@ -401,7 +479,6 @@
       const urlMaps = obtenerEnlaceMaps(p.campo);
       const fechaConDia = formatearFechaConDia(p.fecha, p.hora);
 
-      // Determinar color del resultado anterior según el Ugena
       let colorResIda = "text-slate-200";
       if (partidoPrevio) {
         const previoEsLocalUgena = (partidoPrevio.local || "").toUpperCase().includes('UGENA');
@@ -419,7 +496,6 @@
         </div>
         <div class="text-base font-extrabold text-white">${esLocal ? 'En Casa vs ' + rival : 'Fuera vs ' + rival}</div>
         
-        <!-- INFORMACIÓN DEL RIVAL Y ENFRENTAMIENTO PREVIO (EN LA MISMA LÍNEA) -->
         ${(rivalInfo || partidoPrevio) ? `
           <div class="mt-1.5 flex items-center">
             <span class="text-[11px] bg-black/30 border border-white/10 px-2 py-0.5 rounded-md font-medium text-slate-200 flex items-center gap-1.5 shadow-sm flex-wrap">
@@ -438,16 +514,24 @@
           </div>
         ` : ''}
 
-        <div class="text-[11px] text-sky-100 flex items-center gap-1 mt-2.5">
-          <span>📍</span>
-          ${urlMaps ? `
-            <a href="${urlMaps}" target="_blank" rel="noopener noreferrer" class="underline hover:text-white flex items-center gap-1 font-medium bg-black/20 px-2 py-0.5 rounded transition">
-              <span class="truncate max-w-[240px]">${p.campo}</span>
-              <span class="text-[9px] text-sky-300 font-bold uppercase tracking-wider">Abrir Maps ↗</span>
-            </a>
-          ` : `<span class="truncate">${p.campo}</span>`}
+        <div class="flex items-center gap-4 mt-2.5">
+          <div class="text-[11px] text-sky-100 flex items-center gap-1 flex-1">
+            <span>📍</span>
+            ${urlMaps ? `
+              <a href="${urlMaps}" target="_blank" rel="noopener noreferrer" class="underline hover:text-white flex items-center gap-1 font-medium bg-black/20 px-2 py-0.5 rounded transition truncate max-w-[200px]">
+                <span class="truncate">${p.campo}</span>
+                <span class="text-[9px] text-sky-300 font-bold uppercase tracking-wider">↗</span>
+              </a>
+            ` : `<span class="truncate max-w-[200px]">${p.campo}</span>`}
+          </div>
         </div>
+        
+        <!-- CONTENEDOR DEL CLIMA -->
+        <div id="weather-container"></div>
       `;
+
+      // Cargar pronóstico del clima si hay fecha y hora
+      cargarTiempoPrevisto(p.fecha, p.hora);
     }
 
     function renderQuickStanding() {
