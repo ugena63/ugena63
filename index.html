@@ -30,7 +30,7 @@
   <!-- PANTALLA DE CARGA / ERROR -->
   <div id="loading" class="flex flex-col items-center justify-center py-28 px-4">
     <div id="loading-spinner" class="w-9 h-9 border-4 border-sky-500 border-t-transparent rounded-full animate-spin"></div>
-    <p id="loading-text" class="mt-4 text-xs font-medium text-slate-400">Sincronizando datos federativos...</p>
+    <p id="loading-text" class="mt-4 text-xs font-medium text-slate-400 text-center">Sincronizando datos del equipo...</p>
   </div>
 
   <main id="app" class="hidden p-4 max-w-md mx-auto space-y-4">
@@ -42,9 +42,7 @@
         <div id="next-match-content"></div>
       </div>
 
-      <div id="quick-standing" class="bg-slate-800 border border-slate-700 rounded-xl p-3 flex justify-between items-center">
-        <!-- Relleno dinámico -->
-      </div>
+      <div id="quick-standing" class="bg-slate-800 border border-slate-700 rounded-xl p-3 flex justify-between items-center"></div>
 
       <div>
         <h2 class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">Balance de Temporada</h2>
@@ -133,7 +131,7 @@
 
   </main>
 
-  <!-- BARRA DE NAVEGACIÓN INFERIOR (5 PESTAÑAS) -->
+  <!-- NAVEGACIÓN INFERIOR -->
   <nav class="fixed bottom-0 inset-x-0 bg-slate-800/95 backdrop-blur border-t border-slate-700 py-2 px-3 flex justify-around z-40">
     <button onclick="switchTab('inicio', this)" class="nav-btn active flex flex-col items-center text-sky-400">
       <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
@@ -158,38 +156,67 @@
   </nav>
 
   <script>
+    // ID oficial configurado de Google Sheets
+    const ID_HOJA = "13hXI7RhIPz9SvvFghuCedKNm6aC-HxTdXkasN5afS8g";
+
     let appData = { partidos: [], goleadores: [], clasificacion: [] };
     let chartResultadosInstance = null;
     let chartGoleadoresInstance = null;
     let soloGoleadoresUgena = true;
 
-    window.addEventListener('DOMContentLoaded', () => {
-      google.script.run
-        .withSuccessHandler(response => {
-          try {
-            const data = (typeof response === 'string') ? JSON.parse(response) : response;
-            if (data.error) {
-              mostrarError("Error en servidor: " + data.error);
-              return;
-            }
-            renderApp(data);
-          } catch (e) {
-            mostrarError("Error de decodificación: " + e.message);
-          }
-        })
-        .withFailureHandler(err => {
-          mostrarError("Error de conexión: " + (err.message || err));
-        })
-        .obtenerDatosWeb();
-    });
+    async function descargarHojaGViz(nombreHoja) {
+      const url = `https://docs.google.com/spreadsheets/d/${ID_HOJA}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(nombreHoja)}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("Acceso denegado o error de conexión al consultar " + nombreHoja);
+      const txt = await res.text();
+      const start = txt.indexOf('{');
+      const end = txt.lastIndexOf('}');
+      if (start === -1 || end === -1) throw new Error("No se pudo leer la hoja " + nombreHoja + ". Asegúrate de compartirla como pública.");
+      const data = JSON.parse(txt.substring(start, end + 1));
+      if (data.status === 'error') throw new Error("Error en pestaña " + nombreHoja + ": " + data.errors[0].message);
+      return data.table.rows.map(r => r.c ? r.c.map(cell => cell ? (cell.f !== undefined && cell.f !== null ? cell.f : (cell.v !== null && cell.v !== undefined ? cell.v : '')) : '') : []);
+    }
+
+    async function cargarDatos() {
+      try {
+        const [filasPartidos, filasGoleadores, filasClasif, filasControl] = await Promise.all([
+          descargarHojaGViz("Partidos"),
+          descargarHojaGViz("Goleadores"),
+          descargarHojaGViz("Clasificacion"),
+          descargarHojaGViz("Control")
+        ]);
+
+        const partidos = filasPartidos.map(r => ({
+          jornada: r[0], fecha: r[1], hora: r[2], local: r[3], visitante: r[4],
+          golesLocal: r[5], golesVisitante: r[6], campo: r[7], estado: r[8], urlActa: r[9]
+        }));
+
+        const goleadores = filasGoleadores.map(r => ({
+          posicion: r[0], jugador: r[1], equipo: r[2], goles: Number(r[3]) || 0, esUgena: r[4] === "Sí"
+        }));
+
+        const clasificacion = filasClasif.map((r, i) => ({
+          pos: Number(r[0]) || (i + 1), equipo: r[1], ptos: Number(r[2]) || 0, pj: Number(r[3]) || 0,
+          pg: Number(r[4]) || 0, pe: Number(r[5]) || 0, pp: Number(r[6]) || 0, gf: Number(r[7]) || 0,
+          gc: Number(r[8]) || 0, dif: Number(r[9]) || 0, esUgena: r[10] === "Sí"
+        }));
+
+        const ultimaAct = filasControl.length > 0 ? filasControl[filasControl.length - 1][0] : "Hoy";
+
+        renderApp({ partidos, goleadores, clasificacion, ultimaAct });
+      } catch (err) {
+        mostrarError(err.message);
+      }
+    }
 
     function mostrarError(msg) {
       const load = document.getElementById('loading');
       if (load) {
         load.innerHTML = `
-          <div class="bg-rose-950/80 border border-rose-500/50 p-4 rounded-xl text-rose-200 text-xs text-center max-w-xs shadow-lg">
-            <p class="font-bold text-sm mb-1 text-rose-400">Atención</p>
-            <p>${msg}</p>
+          <div class="bg-rose-950/90 border border-rose-500/60 p-4 rounded-xl text-rose-200 text-xs text-center max-w-xs shadow-xl">
+            <p class="font-bold text-sm mb-1 text-rose-400">Error de Sincronización</p>
+            <p class="leading-relaxed mb-3">${msg}</p>
+            <p class="text-[10px] text-rose-300/80">Comprueba que la hoja esté compartida como «Cualquier persona con el enlace (Lector)».</p>
           </div>
         `;
       }
@@ -220,7 +247,7 @@
       }
 
       const p = proximos[0];
-      const esLocal = p.local.toUpperCase().includes('UGENA');
+      const esLocal = (p.local || "").toUpperCase().includes('UGENA');
       const rival = esLocal ? p.visitante : p.local;
 
       container.innerHTML = `
@@ -257,7 +284,7 @@
       let v = 0, e = 0, d = 0, gf = 0, gc = 0;
 
       finalizados.forEach(p => {
-        const esLocal = p.local.toUpperCase().includes('UGENA');
+        const esLocal = (p.local || "").toUpperCase().includes('UGENA');
         const golesUgena = Number(esLocal ? p.golesLocal : p.golesVisitante) || 0;
         const golesRival = Number(esLocal ? p.golesVisitante : p.golesLocal) || 0;
 
@@ -310,9 +337,9 @@
               <span>${p.fecha} ${p.hora ? '· ' + p.hora : ''}</span>
             </div>
             <div class="flex justify-between items-center text-xs font-semibold">
-              <span class="truncate flex-1 ${p.local.toUpperCase().includes('UGENA') ? 'text-sky-300 font-bold' : 'text-slate-200'}">${p.local}</span>
+              <span class="truncate flex-1 ${(p.local || '').toUpperCase().includes('UGENA') ? 'text-sky-300 font-bold' : 'text-slate-200'}">${p.local}</span>
               <span class="px-2 py-0.5 mx-2 rounded text-xs ${finalizado ? 'bg-slate-700 text-white font-black' : 'text-slate-500 font-normal'}">${finalizado ? p.golesLocal + ' - ' + p.golesVisitante : 'vs'}</span>
-              <span class="truncate flex-1 text-right ${p.visitante.toUpperCase().includes('UGENA') ? 'text-sky-300 font-bold' : 'text-slate-200'}">${p.visitante}</span>
+              <span class="truncate flex-1 text-right ${(p.visitante || '').toUpperCase().includes('UGENA') ? 'text-sky-300 font-bold' : 'text-slate-200'}">${p.visitante}</span>
             </div>
             <div class="text-[10px] text-slate-400 mt-2 truncate flex items-center justify-between border-t border-slate-700/50 pt-2">
               <span class="truncate">📍 ${p.campo}</span>
@@ -366,11 +393,10 @@
     }
 
     function renderCharts() {
-      // 1. Gráfico Circular de Resultados
       const finalizados = (appData.partidos || []).filter(p => p.estado === 'Finalizado');
       let v = 0, e = 0, d = 0;
       finalizados.forEach(p => {
-        const esLocal = p.local.toUpperCase().includes('UGENA');
+        const esLocal = (p.local || "").toUpperCase().includes('UGENA');
         const gU = Number(esLocal ? p.golesLocal : p.golesVisitante) || 0;
         const gR = Number(esLocal ? p.golesVisitante : p.golesLocal) || 0;
         if (gU > gR) v++;
@@ -402,7 +428,6 @@
         });
       }
 
-      // 2. Gráfico de Barras de Goleadores
       const scorers = (appData.goleadores || []).filter(g => g.esUgena).slice(0, 5);
       const canvasGol = document.getElementById('chartGoleadores');
       if (canvasGol) {
@@ -441,6 +466,13 @@
         b.className = "nav-btn flex flex-col items-center text-slate-400";
       });
       if (btn) btn.className = "nav-btn active flex flex-col items-center text-sky-400";
+    }
+
+    // Arranque
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', cargarDatos);
+    } else {
+      cargarDatos();
     }
   </script>
 </body>
