@@ -28,7 +28,7 @@
     <!-- SINCRONIZACIÓN Y CONTADOR DE VERSIÓN -->
     <div class="flex flex-col items-end">
       <span id="txt-sync" class="text-[10px] bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full border border-slate-600">Conectando...</span>
-      <span id="txt-version" class="text-[9px] font-mono font-medium text-sky-400/80 mt-0.5 pr-1">v1.4.2</span>
+      <span id="txt-version" class="text-[9px] font-mono font-medium text-sky-400/80 mt-0.5 pr-1"></span>
     </div>
   </header>
 
@@ -174,7 +174,9 @@
 
   <script>
     const ID_HOJA = "13hXI7RhIPz9SvvFghuCedKNm6aC-HxTdXkasN5afS8g";
-    const APP_VERSION = "v1.4.1";
+    const APP_VERSION = "v1.4.3";
+    const elVer = document.getElementById('txt-version');
+    if (elVer) elVer.innerText = APP_VERSION;
 
     let appData = { partidos: [], goleadores: [], clasificacion: [], direcciones: [] };
     let chartResultadosInstance = null;
