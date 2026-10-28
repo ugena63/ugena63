@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>C.D. Ugena EFM 'A'</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#0f172a">
@@ -16,10 +16,10 @@
     .tab-content.active { display: block; }
   </style>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen pb-24 font-sans select-none">
+<body class="bg-slate-900 text-slate-100 h-screen h-[100dvh] flex flex-col font-sans select-none overflow-hidden">
 
   <!-- CABECERA FIJA -->
-  <header class="sticky top-0 z-30 bg-slate-800/95 backdrop-blur border-b border-slate-700 px-4 py-3 flex items-center justify-between shadow-sm">
+  <header class="flex-none bg-slate-800/95 backdrop-blur border-b border-slate-700 px-4 py-3 flex items-center justify-between shadow-sm z-30">
     <div>
       <h1 class="font-black text-sm tracking-wide text-white uppercase">C.D. UGENA EFM 'A'</h1>
       <p class="text-[11px] text-sky-400 font-medium">Preferente Alevín · Grupo 6</p>
@@ -27,8 +27,8 @@
     <span id="txt-sync" class="text-[10px] bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full border border-slate-600">Conectando...</span>
   </header>
 
-<!-- PANTALLA DE CARGA / ERROR -->
-  <div id="loading" class="flex flex-col items-center justify-center py-28 px-4">
+  <!-- PANTALLA DE CARGA / ERROR -->
+  <div id="loading" class="flex-1 flex flex-col items-center justify-center p-6 text-center">
     <div id="loading-spinner" class="w-10 h-10 border-4 border-sky-500 border-t-transparent rounded-full animate-spin"></div>
     <p id="loading-text" class="mt-4 text-base font-bold text-white text-center">
       Actualizando app
@@ -38,7 +38,8 @@
     </p>
   </div>
 
-  <main id="app" class="hidden p-4 max-w-md mx-auto space-y-4">
+  <!-- CONTENEDOR PRINCIPAL CON SCROLL INDEPENDIENTE -->
+  <main id="app" class="hidden flex-1 overflow-y-auto overscroll-y-contain p-4 max-w-md mx-auto w-full space-y-4">
 
     <!-- 1. PESTAÑA: INICIO -->
     <section id="tab-inicio" class="tab-content active space-y-4">
@@ -105,7 +106,7 @@
     </section>
 
     <!-- 3. PESTAÑA: CALENDARIO -->
-    <section id="tab-calendario" class="tab-content space-y-3">
+    <section id="tab-calendario" class="tab-content space-y-3 pb-4">
       <div class="flex gap-2">
         <button onclick="filtrarPartidos('todos', this)" class="btn-filtro flex-1 py-1.5 text-xs font-semibold rounded-lg bg-sky-600 text-white">Todos</button>
         <button onclick="filtrarPartidos('Pendiente', this)" class="btn-filtro flex-1 py-1.5 text-xs font-medium rounded-lg bg-slate-800 text-slate-300">Pendientes</button>
@@ -127,14 +128,14 @@
     <section id="tab-graficos" class="tab-content space-y-4">
       <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700">
         <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 text-center">Balance de Resultados</h3>
-        <div class="relative h-48 flex items-center justify-center">
+        <div class="relative h-44 flex items-center justify-center">
           <canvas id="chartResultados"></canvas>
         </div>
       </div>
 
       <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700">
         <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 text-center">Goles por Jugador (Ugena)</h3>
-        <div class="relative h-56">
+        <div class="relative h-52">
           <canvas id="chartGoleadores"></canvas>
         </div>
       </div>
@@ -142,8 +143,8 @@
 
   </main>
 
-  <!-- NAVEGACIÓN INFERIOR -->
-  <nav class="fixed bottom-0 inset-x-0 bg-slate-800/95 backdrop-blur border-t border-slate-700 py-2 px-3 flex justify-around z-40">
+  <!-- BARRA DE NAVEGACIÓN INFERIOR (ANCLADA) -->
+  <nav class="flex-none bg-slate-800/95 backdrop-blur border-t border-slate-700 py-2 px-3 flex justify-around z-40">
     <button onclick="switchTab('inicio', this)" class="nav-btn active flex flex-col items-center text-sky-400">
       <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
       <span class="text-[9px] mt-1 font-medium">Inicio</span>
@@ -174,7 +175,6 @@
     let chartGoleadoresInstance = null;
     let soloGoleadoresUgena = true;
 
-    // Obtener día de la semana y formatear fecha
     function formatearFechaConDia(fechaStr, horaStr) {
       if (!fechaStr) return "";
       const partes = fechaStr.trim().split(/[\/\-]/);
@@ -588,6 +588,18 @@
         b.className = "nav-btn flex flex-col items-center text-slate-400";
       });
       if (btn) btn.className = "nav-btn active flex flex-col items-center text-sky-400";
+
+      // Vuelve al inicio del scroll al cambiar de sección
+      const mainApp = document.getElementById('app');
+      if (mainApp) mainApp.scrollTop = 0;
+
+      // Reajuste de dimensiones de gráficos si se accede a la pestaña
+      if (tabId === 'graficos') {
+        setTimeout(() => {
+          if (chartResultadosInstance) chartResultadosInstance.resize();
+          if (chartGoleadoresInstance) chartGoleadoresInstance.resize();
+        }, 50);
+      }
     }
 
     if (document.readyState === 'loading') {
