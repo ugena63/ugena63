@@ -16,19 +16,24 @@
     .tab-content.active { display: block; }
   </style>
 </head>
-<body class="bg-slate-900 text-slate-100 h-screen h-[100dvh] flex flex-col font-sans select-none overflow-hidden">
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans select-none">
 
   <!-- CABECERA FIJA -->
-  <header class="flex-none bg-slate-800/95 backdrop-blur border-b border-slate-700 px-4 py-3 flex items-center justify-between shadow-sm z-30">
+  <header class="sticky top-0 z-30 bg-slate-800/95 backdrop-blur border-b border-slate-700 px-4 py-3 flex items-center justify-between shadow-sm">
     <div>
       <h1 class="font-black text-sm tracking-wide text-white uppercase">C.D. UGENA EFM 'A'</h1>
       <p class="text-[11px] text-sky-400 font-medium">Preferente Alevín · Grupo 6</p>
     </div>
-    <span id="txt-sync" class="text-[10px] bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full border border-slate-600">Conectando...</span>
+    
+    <!-- SINCRONIZACIÓN Y CONTADOR DE VERSIÓN -->
+    <div class="flex flex-col items-end">
+      <span id="txt-sync" class="text-[10px] bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full border border-slate-600">Conectando...</span>
+      <span id="txt-version" class="text-[9px] font-mono font-medium text-sky-400/80 mt-0.5 pr-1">v1.2.0</span>
+    </div>
   </header>
 
   <!-- PANTALLA DE CARGA / ERROR -->
-  <div id="loading" class="flex-1 flex flex-col items-center justify-center p-6 text-center">
+  <div id="loading" class="flex flex-col items-center justify-center py-28 px-4 text-center">
     <div id="loading-spinner" class="w-10 h-10 border-4 border-sky-500 border-t-transparent rounded-full animate-spin"></div>
     <p id="loading-text" class="mt-4 text-base font-bold text-white text-center">
       Actualizando app
@@ -38,8 +43,8 @@
     </p>
   </div>
 
-  <!-- CONTENEDOR PRINCIPAL CON SCROLL INDEPENDIENTE -->
-  <main id="app" class="hidden flex-1 overflow-y-auto overscroll-y-contain p-4 max-w-md mx-auto w-full space-y-4">
+  <!-- CONTENIDO PRINCIPAL -->
+  <main id="app" class="hidden p-4 pb-24 max-w-md mx-auto space-y-4">
 
     <!-- 1. PESTAÑA: INICIO -->
     <section id="tab-inicio" class="tab-content active space-y-4">
@@ -106,7 +111,7 @@
     </section>
 
     <!-- 3. PESTAÑA: CALENDARIO -->
-    <section id="tab-calendario" class="tab-content space-y-3 pb-4">
+    <section id="tab-calendario" class="tab-content space-y-3">
       <div class="flex gap-2">
         <button onclick="filtrarPartidos('todos', this)" class="btn-filtro flex-1 py-1.5 text-xs font-semibold rounded-lg bg-sky-600 text-white">Todos</button>
         <button onclick="filtrarPartidos('Pendiente', this)" class="btn-filtro flex-1 py-1.5 text-xs font-medium rounded-lg bg-slate-800 text-slate-300">Pendientes</button>
@@ -128,14 +133,14 @@
     <section id="tab-graficos" class="tab-content space-y-4">
       <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700">
         <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 text-center">Balance de Resultados</h3>
-        <div class="relative h-44 flex items-center justify-center">
+        <div class="relative h-48 flex items-center justify-center">
           <canvas id="chartResultados"></canvas>
         </div>
       </div>
 
       <div class="bg-slate-800 rounded-2xl p-4 border border-slate-700">
         <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 text-center">Goles por Jugador (Ugena)</h3>
-        <div class="relative h-52">
+        <div class="relative h-56">
           <canvas id="chartGoleadores"></canvas>
         </div>
       </div>
@@ -143,8 +148,8 @@
 
   </main>
 
-  <!-- BARRA DE NAVEGACIÓN INFERIOR (ANCLADA) -->
-  <nav class="flex-none bg-slate-800/95 backdrop-blur border-t border-slate-700 py-2 px-3 flex justify-around z-40">
+  <!-- NAVEGACIÓN INFERIOR (FIJA Y COMPATIBLE) -->
+  <nav class="fixed bottom-0 inset-x-0 bg-slate-800/95 backdrop-blur border-t border-slate-700 py-2 px-3 pb-[max(0.5rem,env(safe-area-inset-bottom))] flex justify-around z-40 shadow-lg">
     <button onclick="switchTab('inicio', this)" class="nav-btn active flex flex-col items-center text-sky-400">
       <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
       <span class="text-[9px] mt-1 font-medium">Inicio</span>
@@ -169,6 +174,7 @@
 
   <script>
     const ID_HOJA = "13hXI7RhIPz9SvvFghuCedKNm6aC-HxTdXkasN5afS8g";
+    const APP_VERSION = "v1.2.0";
 
     let appData = { partidos: [], goleadores: [], clasificacion: [], direcciones: [] };
     let chartResultadosInstance = null;
@@ -218,16 +224,13 @@
         .trim();
     }
 
-    // Busca la información del rival en la tabla de clasificación
     function obtenerInfoEquipo(nombreEquipo) {
       if (!nombreEquipo || !appData.clasificacion || appData.clasificacion.length === 0) return null;
       const nomNorm = normalizarTexto(nombreEquipo);
 
-      // 1. Coincidencia exacta normalizada
       let encontrado = appData.clasificacion.find(c => normalizarTexto(c.equipo) === nomNorm);
       if (encontrado) return encontrado;
 
-      // 2. Coincidencia parcial por inclusión
       encontrado = appData.clasificacion.find(c => {
         const cNorm = normalizarTexto(c.equipo);
         return cNorm.includes(nomNorm) || nomNorm.includes(cNorm);
@@ -354,6 +357,7 @@
       document.getElementById('loading').classList.add('hidden');
       document.getElementById('app').classList.remove('hidden');
       document.getElementById('txt-sync').innerText = "Act: " + (data.ultimaAct || "Hoy");
+      document.getElementById('txt-version').innerText = APP_VERSION;
 
       renderNextMatch();
       renderQuickStanding();
@@ -621,8 +625,7 @@
       });
       if (btn) btn.className = "nav-btn active flex flex-col items-center text-sky-400";
 
-      const mainApp = document.getElementById('app');
-      if (mainApp) mainApp.scrollTop = 0;
+      window.scrollTo({ top: 0, behavior: 'instant' });
 
       if (tabId === 'graficos') {
         setTimeout(() => {
