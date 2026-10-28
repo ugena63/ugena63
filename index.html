@@ -164,19 +164,51 @@
   <script>
     const ID_HOJA = "13hXI7RhIPz9SvvFghuCedKNm6aC-HxTdXkasN5afS8g";
 
-    let appData = { partidos: [], goleadores: [], clasificacion: [], direcciones: {} };
+    let appData = { partidos: [], goleadores: [], clasificacion: [], direcciones: [] };
     let chartResultadosInstance = null;
     let chartGoleadoresInstance = null;
     let soloGoleadoresUgena = true;
 
-    // Obtener enlace a Google Maps consultando la tabla de Direcciones
+    // Función de limpieza de cadenas para comparar nombres de campos
+    function normalizarTexto(txt) {
+      if (!txt) return "";
+      return txt
+        .toString()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "") // Quitar acentos
+        .toUpperCase()
+        .replace(/\(H[AN]\)/gi, "")     // Quitar (HA) o (HN)
+        .replace(/[^A-Z0-9]/g, " ")     // Sustituir guiones, paréntesis y puntos por espacios
+        .replace(/\s+/g, " ")           // Limpiar espacios repetidos
+        .trim();
+    }
+
+    // Resolver el enlace a Google Maps usando la hoja de Direcciones
     function obtenerEnlaceMaps(nombreCampo) {
       if (!nombreCampo || nombreCampo === "Por confirmar") return null;
 
-      const clave = nombreCampo.trim().toUpperCase();
-      const destino = appData.direcciones[clave];
+      const campoNorm = normalizarTexto(nombreCampo);
+      let destino = null;
 
-      // Si existe en la hoja Direcciones
+      // 1. Búsqueda por coincidencia directa normalizada
+      for (const item of appData.direcciones) {
+        if (item.claveNorm === campoNorm) {
+          destino = item.valor;
+          break;
+        }
+      }
+
+      // 2. Búsqueda por coincidencia parcial (si la clave contiene o está contenida)
+      if (!destino) {
+        for (const item of appData.direcciones) {
+          if (item.claveNorm && (campoNorm.includes(item.claveNorm) || item.claveNorm.includes(campoNorm))) {
+            destino = item.valor;
+            break;
+          }
+        }
+      }
+
+      // Si encontramos coincidencia en la hoja Direcciones
       if (destino) {
         if (destino.startsWith("http://") || destino.startsWith("https://")) {
           return destino;
@@ -184,12 +216,13 @@
         return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(destino)}`;
       }
 
-      // Si no está registrado en Direcciones, busca con el nombre federativo
-      return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(nombreCampo + ' futbol')}`;
+      // 3. Fallback: Limpieza del nombre oficial si no está en la hoja
+      const nombreLimpio = nombreCampo.replace(/\(H[AN]\)/gi, "").replace(/[-()]/g, " ").replace(/\s+/g, " ").trim();
+      return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(nombreLimpio + ' futbol')}`;
     }
 
-    async function descargarHojaGViz(nombreHoja) {
-      const url = `https://docs.google.com/spreadsheets/d/${ID_HOJA}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(nombreHoja)}`;
+    async function descargarHojaGViz(nombreHoja, sinEncabezados = false) {
+      const url = `https://docs.google.com/spreadsheets/d/${ID_HOJA}/gviz/tq?tqx=out:json${sinEncabezados ? '&headers=0' : ''}&sheet=${encodeURIComponent(nombreHoja)}`;
       const res = await fetch(url);
       if (!res.ok) throw new Error("Acceso denegado o error de red al consultar " + nombreHoja);
       const txt = await res.text();
@@ -198,18 +231,26 @@
       if (start === -1 || end === -1) throw new Error("No se pudo leer la hoja " + nombreHoja);
       const data = JSON.parse(txt.substring(start, end + 1));
       if (data.status === 'error') throw new Error("Error en pestaña " + nombreHoja + ": " + data.errors[0].message);
-      return data.table.rows.map(r => r.c ? r.c.map(cell => cell ? (cell.f !== undefined && cell.f !== null ? cell.f : (cell.v !== null && cell.v !== undefined ? cell.v : '')) : '') : []);
+
+      const filas = data.table.rows.map(r => r.c ? r.c.map(cell => cell ? (cell.f !== undefined && cell.f !== null ? cell.f : (cell.v !== null && cell.v !== undefined ? cell.v : '')) : '') : []);
+
+      // Respaldo: si GViz tomó la fila 1 como encabezados de columnas
+      if (filas.length === 0 && data.table.cols && data.table.cols.some(c => c.label && c.label.length > 2)) {
+        const filaDesdeCols = data.table.cols.map(c => c.label || '');
+        filas.push(filaDesdeCols);
+      }
+
+      return filas;
     }
 
     async function cargarDatos() {
       try {
-        // Carga simultánea de las 5 pestañas
         const [filasPartidos, filasGoleadores, filasClasif, filasControl, filasDirecciones] = await Promise.all([
           descargarHojaGViz("Partidos"),
           descargarHojaGViz("Goleadores"),
           descargarHojaGViz("Clasificacion"),
           descargarHojaGViz("Control"),
-          descargarHojaGViz("Direcciones").catch(() => []) // Evita fallo si la hoja aún está vacía
+          descargarHojaGViz("Direcciones", true).catch(() => []) // headers=0 para no saltar la fila 1
         ]);
 
         const partidos = filasPartidos.map(r => ({
@@ -227,13 +268,17 @@
           gc: Number(r[8]) || 0, dif: Number(r[9]) || 0, esUgena: r[10] === "Sí"
         }));
 
-        // Mapeo clave (Columna A) -> Búsqueda Maps (Columna B)
-        const direcciones = {};
+        // Estructura de direcciones normalizada
+        const direcciones = [];
         filasDirecciones.forEach(r => {
-          const clave = (r[0] || "").trim().toUpperCase();
+          const clave = (r[0] || "").trim();
           const valor = (r[1] || "").trim();
           if (clave && valor) {
-            direcciones[clave] = valor;
+            direcciones.push({
+              claveOriginal: clave,
+              claveNorm: normalizarTexto(clave),
+              valor: valor
+            });
           }
         });
 
