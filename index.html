@@ -42,22 +42,28 @@
         <div id="next-match-content"></div>
       </div>
 
+      <!-- Tarjeta Posición + Puntos -->
       <div id="quick-standing" class="bg-slate-800 border border-slate-700 rounded-xl p-3 flex justify-between items-center"></div>
 
+      <!-- Balance de Temporada (4 Columnas) -->
       <div>
         <h2 class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">Balance de Temporada</h2>
-        <div class="grid grid-cols-3 gap-2 text-center mb-2">
-          <div class="bg-slate-800 rounded-xl p-3 border border-slate-700">
-            <span class="text-[11px] text-slate-400 block">Jugados</span>
-            <span id="kpi-pj" class="text-lg font-black text-white">-</span>
+        <div class="grid grid-cols-4 gap-2 text-center mb-2">
+          <div class="bg-slate-800 rounded-xl p-2.5 border border-slate-700">
+            <span class="text-[10px] text-slate-400 block">Jugados</span>
+            <span id="kpi-pj" class="text-base font-black text-white">-</span>
           </div>
-          <div class="bg-slate-800 rounded-xl p-3 border border-slate-700">
-            <span class="text-[11px] text-emerald-400 block">Victorias</span>
-            <span id="kpi-v" class="text-lg font-black text-emerald-400">-</span>
+          <div class="bg-slate-800 rounded-xl p-2.5 border border-slate-700">
+            <span class="text-[10px] text-emerald-400 block">Victorias</span>
+            <span id="kpi-v" class="text-base font-black text-emerald-400">-</span>
           </div>
-          <div class="bg-slate-800 rounded-xl p-3 border border-slate-700">
-            <span class="text-[11px] text-rose-400 block">Derrotas</span>
-            <span id="kpi-d" class="text-lg font-black text-rose-400">-</span>
+          <div class="bg-slate-800 rounded-xl p-2.5 border border-slate-700">
+            <span class="text-[10px] text-amber-400 block">Empates</span>
+            <span id="kpi-e" class="text-base font-black text-amber-400">-</span>
+          </div>
+          <div class="bg-slate-800 rounded-xl p-2.5 border border-slate-700">
+            <span class="text-[10px] text-rose-400 block">Derrotas</span>
+            <span id="kpi-d" class="text-base font-black text-rose-400">-</span>
           </div>
         </div>
 
@@ -67,8 +73,8 @@
             <span id="kpi-gf" class="text-lg font-black text-sky-400">-</span>
           </div>
           <div class="bg-slate-800 rounded-xl p-3 border border-slate-700">
-            <span class="text-[11px] text-amber-400 block">Goles en Contra</span>
-            <span id="kpi-gc" class="text-lg font-black text-amber-400">-</span>
+            <span class="text-[11px] text-slate-400 block">Goles en Contra</span>
+            <span id="kpi-gc" class="text-lg font-black text-slate-200">-</span>
           </div>
         </div>
       </div>
@@ -156,7 +162,6 @@
   </nav>
 
   <script>
-    // ID oficial configurado de Google Sheets
     const ID_HOJA = "13hXI7RhIPz9SvvFghuCedKNm6aC-HxTdXkasN5afS8g";
 
     let appData = { partidos: [], goleadores: [], clasificacion: [] };
@@ -167,11 +172,11 @@
     async function descargarHojaGViz(nombreHoja) {
       const url = `https://docs.google.com/spreadsheets/d/${ID_HOJA}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(nombreHoja)}`;
       const res = await fetch(url);
-      if (!res.ok) throw new Error("Acceso denegado o error de conexión al consultar " + nombreHoja);
+      if (!res.ok) throw new Error("Acceso denegado o error de red al consultar " + nombreHoja);
       const txt = await res.text();
       const start = txt.indexOf('{');
       const end = txt.lastIndexOf('}');
-      if (start === -1 || end === -1) throw new Error("No se pudo leer la hoja " + nombreHoja + ". Asegúrate de compartirla como pública.");
+      if (start === -1 || end === -1) throw new Error("No se pudo leer la hoja " + nombreHoja);
       const data = JSON.parse(txt.substring(start, end + 1));
       if (data.status === 'error') throw new Error("Error en pestaña " + nombreHoja + ": " + data.errors[0].message);
       return data.table.rows.map(r => r.c ? r.c.map(cell => cell ? (cell.f !== undefined && cell.f !== null ? cell.f : (cell.v !== null && cell.v !== undefined ? cell.v : '')) : '') : []);
@@ -270,10 +275,10 @@
         container.innerHTML = `
           <div>
             <span class="text-[10px] text-slate-400 uppercase font-semibold block">Posición en Liga</span>
-            <span class="text-sm font-bold text-white">${posUgena.pos}º Clasificado (${posUgena.ptos} pts)</span>
+            <span class="text-sm font-bold text-white">${posUgena.pos}º Clasificado</span>
           </div>
-          <span class="text-xs bg-sky-500/20 text-sky-400 font-bold px-2.5 py-1 rounded-lg border border-sky-500/30">
-            ${posUgena.pg}V ${posUgena.pe}E ${posUgena.pp}D
+          <span class="text-xs bg-sky-500/20 text-sky-400 font-black px-2.5 py-1 rounded-lg border border-sky-500/30">
+            ${posUgena.ptos} PTS
           </span>
         `;
       }
@@ -298,6 +303,7 @@
 
       document.getElementById('kpi-pj').innerText = finalizados.length;
       document.getElementById('kpi-v').innerText = v;
+      document.getElementById('kpi-e').innerText = e;
       document.getElementById('kpi-d').innerText = d;
       document.getElementById('kpi-gf').innerText = gf;
       document.getElementById('kpi-gc').innerText = gc;
@@ -414,7 +420,7 @@
             labels: ['Victorias', 'Empates', 'Derrotas'],
             datasets: [{
               data: [v, e, d],
-              backgroundColor: ['#10b981', '#64748b', '#f43f5e'],
+              backgroundColor: ['#10b981', '#f59e0b', '#f43f5e'],
               borderWidth: 0
             }]
           },
@@ -468,7 +474,6 @@
       if (btn) btn.className = "nav-btn active flex flex-col items-center text-sky-400";
     }
 
-    // Arranque
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', cargarDatos);
     } else {
