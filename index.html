@@ -28,7 +28,7 @@
     <!-- SINCRONIZACIÓN Y CONTADOR DE VERSIÓN -->
     <div class="flex flex-col items-end">
       <span id="txt-sync" class="text-[10px] bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full border border-slate-600">Conectando...</span>
-      <span id="txt-version" class="text-[9px] font-mono font-medium text-sky-400/80 mt-0.5 pr-1">v1.2.0</span>
+      <span id="txt-version" class="text-[9px] font-mono font-medium text-sky-400/80 mt-0.5 pr-1">v1.3.0</span>
     </div>
   </header>
 
@@ -174,7 +174,7 @@
 
   <script>
     const ID_HOJA = "13hXI7RhIPz9SvvFghuCedKNm6aC-HxTdXkasN5afS8g";
-    const APP_VERSION = "v1.2.0";
+    const APP_VERSION = "v1.3.0";
 
     let appData = { partidos: [], goleadores: [], clasificacion: [], direcciones: [] };
     let chartResultadosInstance = null;
@@ -237,6 +237,22 @@
       });
 
       return encontrado || null;
+    }
+
+    // Busca si ya se jugó el partido de la primera vuelta contra este rival
+    function buscarPartidoPrevio(rivalNombre, jornadaActual) {
+      if (!rivalNombre || !appData.partidos || appData.partidos.length === 0) return null;
+      const rNorm = normalizarTexto(rivalNombre);
+      const jAct = Number(jornadaActual) || 999;
+
+      return appData.partidos.find(m => {
+        if (m.estado !== 'Finalizado') return false;
+        if (Number(m.jornada) >= jAct) return false;
+        const locNorm = normalizarTexto(m.local);
+        const visNorm = normalizarTexto(m.visitante);
+        return locNorm.includes(rNorm) || rNorm.includes(locNorm) ||
+               visNorm.includes(rNorm) || rNorm.includes(visNorm);
+      });
     }
 
     function obtenerEnlaceMaps(nombreCampo) {
@@ -381,8 +397,20 @@
       const esLocal = (p.local || "").toUpperCase().includes('UGENA');
       const rival = esLocal ? p.visitante : p.local;
       const rivalInfo = obtenerInfoEquipo(rival);
+      const partidoPrevio = buscarPartidoPrevio(rival, p.jornada);
       const urlMaps = obtenerEnlaceMaps(p.campo);
       const fechaConDia = formatearFechaConDia(p.fecha, p.hora);
+
+      // Determinar color del resultado anterior según el Ugena
+      let colorResIda = "text-slate-200";
+      if (partidoPrevio) {
+        const previoEsLocalUgena = (partidoPrevio.local || "").toUpperCase().includes('UGENA');
+        const gU = Number(previoEsLocalUgena ? partidoPrevio.golesLocal : partidoPrevio.golesVisitante) || 0;
+        const gR = Number(previoEsLocalUgena ? partidoPrevio.golesVisitante : partidoPrevio.golesLocal) || 0;
+        if (gU > gR) colorResIda = "text-emerald-400";
+        else if (gU < gR) colorResIda = "text-rose-400";
+        else colorResIda = "text-amber-400";
+      }
 
       container.innerHTML = `
         <div class="flex justify-between items-baseline mb-1">
@@ -391,14 +419,21 @@
         </div>
         <div class="text-base font-extrabold text-white">${esLocal ? 'En Casa vs ' + rival : 'Fuera vs ' + rival}</div>
         
-        <!-- INFORMACIÓN DEL RIVAL -->
-        ${rivalInfo ? `
-          <div class="mt-1 flex items-center">
-            <span class="text-[11px] bg-black/30 border border-white/10 px-2 py-0.5 rounded-md font-medium text-slate-200 flex items-center gap-1.5 shadow-sm">
-              <span>📊 Rival:</span>
-              <strong class="text-amber-300 font-bold">${rivalInfo.pos}º en liga</strong>
-              <span class="text-slate-400">·</span>
-              <span class="text-sky-300 font-semibold">${rivalInfo.ptos} pts</span>
+        <!-- INFORMACIÓN DEL RIVAL Y ENFRENTAMIENTO PREVIO (EN LA MISMA LÍNEA) -->
+        ${(rivalInfo || partidoPrevio) ? `
+          <div class="mt-1.5 flex items-center">
+            <span class="text-[11px] bg-black/30 border border-white/10 px-2 py-0.5 rounded-md font-medium text-slate-200 flex items-center gap-1.5 shadow-sm flex-wrap">
+              ${rivalInfo ? `
+                <span>📊 Rival:</span>
+                <strong class="text-amber-300 font-bold">${rivalInfo.pos}º en liga</strong>
+                <span class="text-slate-400">·</span>
+                <span class="text-sky-300 font-semibold">${rivalInfo.ptos} pts</span>
+              ` : ''}
+              ${partidoPrevio ? `
+                ${rivalInfo ? '<span class="text-slate-400">·</span>' : ''}
+                <span>Ida:</span>
+                <strong class="${colorResIda} font-bold">${partidoPrevio.golesLocal}-${partidoPrevio.golesVisitante}</strong>
+              ` : ''}
             </span>
           </div>
         ` : ''}
