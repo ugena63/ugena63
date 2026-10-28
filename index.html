@@ -27,12 +27,11 @@
     <span id="txt-sync" class="text-[10px] bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full border border-slate-600">Conectando...</span>
   </header>
 
-<!-- PANTALLA DE CARGA / ERROR -->
+  <!-- PANTALLA DE CARGA / ERROR -->
   <div id="loading" class="flex flex-col items-center justify-center py-28 px-4">
     <div id="loading-spinner" class="w-10 h-10 border-4 border-sky-500 border-t-transparent rounded-full animate-spin"></div>
-    <p id="loading-text" class="mt-4 text-base font-bold text-white text-center">
-      Actualizando app
-      <span class="block text-sm font-normal text-sky-400 mt-1">Creada para el equipo C.D. Ugena A y especialmente para el jugador nº 63 ;)</span>
+    <p id="loading-text" class="mt-4 text-base font-semibold text-slate-200 text-center">
+      Actualizando app. Creada para el equipo
     </p>
   </div>
 
@@ -172,28 +171,56 @@
     let chartGoleadoresInstance = null;
     let soloGoleadoresUgena = true;
 
-    // Función de limpieza de cadenas para comparar nombres de campos
+    // Obtener día de la semana y formatear fecha
+    function formatearFechaConDia(fechaStr, horaStr) {
+      if (!fechaStr) return "";
+      const partes = fechaStr.trim().split(/[\/\-]/);
+      let nombreDia = "";
+      let fechaFormateada = fechaStr;
+
+      if (partes.length === 3) {
+        let dia, mes, anio;
+        if (partes[0].length === 4) {
+          anio = parseInt(partes[0], 10);
+          mes = parseInt(partes[1], 10) - 1;
+          dia = parseInt(partes[2], 10);
+        } else {
+          dia = parseInt(partes[0], 10);
+          mes = parseInt(partes[1], 10) - 1;
+          anio = parseInt(partes[2], 10);
+        }
+
+        const d = new Date(anio, mes, dia);
+        if (!isNaN(d.getTime())) {
+          const dias = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+          nombreDia = dias[d.getDay()];
+          fechaFormateada = `${String(dia).padStart(2, '0')}/${String(mes + 1).padStart(2, '0')}/${anio}`;
+        }
+      }
+
+      const hora = horaStr ? ` ${horaStr}` : "";
+      return nombreDia ? `${nombreDia} ${fechaFormateada}${hora}` : `${fechaFormateada}${hora}`;
+    }
+
     function normalizarTexto(txt) {
       if (!txt) return "";
       return txt
         .toString()
         .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "") // Quitar acentos
+        .replace(/[\u0300-\u036f]/g, "")
         .toUpperCase()
-        .replace(/\(H[AN]\)/gi, "")     // Quitar (HA) o (HN)
-        .replace(/[^A-Z0-9]/g, " ")     // Sustituir guiones, paréntesis y puntos por espacios
-        .replace(/\s+/g, " ")           // Limpiar espacios repetidos
+        .replace(/\(H[AN]\)/gi, "")
+        .replace(/[^A-Z0-9]/g, " ")
+        .replace(/\s+/g, " ")
         .trim();
     }
 
-    // Resolver el enlace a Google Maps usando la hoja de Direcciones
     function obtenerEnlaceMaps(nombreCampo) {
       if (!nombreCampo || nombreCampo === "Por confirmar") return null;
 
       const campoNorm = normalizarTexto(nombreCampo);
       let destino = null;
 
-      // 1. Búsqueda por coincidencia directa normalizada
       for (const item of appData.direcciones) {
         if (item.claveNorm === campoNorm) {
           destino = item.valor;
@@ -201,7 +228,6 @@
         }
       }
 
-      // 2. Búsqueda por coincidencia parcial (si la clave contiene o está contenida)
       if (!destino) {
         for (const item of appData.direcciones) {
           if (item.claveNorm && (campoNorm.includes(item.claveNorm) || item.claveNorm.includes(campoNorm))) {
@@ -211,7 +237,6 @@
         }
       }
 
-      // Si encontramos coincidencia en la hoja Direcciones
       if (destino) {
         if (destino.startsWith("http://") || destino.startsWith("https://")) {
           return destino;
@@ -219,7 +244,6 @@
         return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(destino)}`;
       }
 
-      // 3. Fallback: Limpieza del nombre oficial si no está en la hoja
       const nombreLimpio = nombreCampo.replace(/\(H[AN]\)/gi, "").replace(/[-()]/g, " ").replace(/\s+/g, " ").trim();
       return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(nombreLimpio + ' futbol')}`;
     }
@@ -237,7 +261,6 @@
 
       const filas = data.table.rows.map(r => r.c ? r.c.map(cell => cell ? (cell.f !== undefined && cell.f !== null ? cell.f : (cell.v !== null && cell.v !== undefined ? cell.v : '')) : '') : []);
 
-      // Respaldo: si GViz tomó la fila 1 como encabezados de columnas
       if (filas.length === 0 && data.table.cols && data.table.cols.some(c => c.label && c.label.length > 2)) {
         const filaDesdeCols = data.table.cols.map(c => c.label || '');
         filas.push(filaDesdeCols);
@@ -253,7 +276,7 @@
           descargarHojaGViz("Goleadores"),
           descargarHojaGViz("Clasificacion"),
           descargarHojaGViz("Control"),
-          descargarHojaGViz("Direcciones", true).catch(() => []) // headers=0 para no saltar la fila 1
+          descargarHojaGViz("Direcciones", true).catch(() => [])
         ]);
 
         const partidos = filasPartidos.map(r => ({
@@ -271,7 +294,6 @@
           gc: Number(r[8]) || 0, dif: Number(r[9]) || 0, esUgena: r[10] === "Sí"
         }));
 
-        // Estructura de direcciones normalizada
         const direcciones = [];
         filasDirecciones.forEach(r => {
           const clave = (r[0] || "").trim();
@@ -334,11 +356,12 @@
       const esLocal = (p.local || "").toUpperCase().includes('UGENA');
       const rival = esLocal ? p.visitante : p.local;
       const urlMaps = obtenerEnlaceMaps(p.campo);
+      const fechaConDia = formatearFechaConDia(p.fecha, p.hora);
 
       container.innerHTML = `
         <div class="flex justify-between items-baseline mb-1">
           <span class="text-xs text-sky-200 font-semibold">Jornada ${p.jornada}</span>
-          <span class="text-xs bg-sky-950/70 border border-sky-400/30 px-2 py-0.5 rounded text-white font-medium">${p.fecha} ${p.hora ? '· ' + p.hora : ''}</span>
+          <span class="text-xs bg-sky-950/70 border border-sky-400/30 px-2 py-0.5 rounded text-white font-medium">${fechaConDia}</span>
         </div>
         <div class="text-base font-extrabold text-white">${esLocal ? 'En Casa vs ' + rival : 'Fuera vs ' + rival}</div>
         <div class="text-[11px] text-sky-100 flex items-center gap-1 mt-2.5">
