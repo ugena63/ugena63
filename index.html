@@ -274,7 +274,7 @@
 
   <script>
     const ID_HOJA = "13hXI7RhIPz9SvvFghuCedKNm6aC-HxTdXkasN5afS8g";
-    const APP_VERSION = "v1.6.4";
+    const APP_VERSION = "v1.6.3";
     const elVer = document.getElementById('txt-version');
     if (elVer) elVer.innerText = APP_VERSION;
 
@@ -377,7 +377,7 @@
 
         const d = new Date(anio, mes, dia);
         if (!isNaN(d.getTime())) {
-          const dias = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+          const dias = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
           nombreDia = dias[d.getDay()];
           fechaFormateada = `${String(dia).padStart(2, '0')}/${String(mes + 1).padStart(2, '0')}`;
         }
@@ -589,13 +589,13 @@
       const rivalEscapado = rival.replace(/'/g, "\\'");
 
       container.innerHTML = `
-        <div class="flex justify-between items-center mb-1">
-          <span class="text-[11px] text-sky-200 font-semibold">Jornada ${p.jornada}</span>
-          <span class="text-xs font-bold bg-sky-950/70 border border-sky-400/30 px-2 py-0.5 rounded-md text-white tracking-wide shadow-sm">${fechaConDia}</span>
+        <div class="flex justify-between items-baseline mb-1">
+          <span class="text-xs text-sky-200 font-semibold">Jornada ${p.jornada}</span>
+          <span class="text-base font-black bg-sky-950/70 border border-sky-400/30 px-3 py-1 rounded-lg text-white tracking-wide shadow-inner">${fechaConDia}</span>
         </div>
         
         <div class="text-sm font-extrabold text-white flex items-center gap-1 truncate">
-          <span class="shrink-0 text-sky-200">${esLocal ? 'Casa vs' : 'Fuera vs'}</span>
+          <span class="shrink-0 text-sky-200">${esLocal ? 'En Casa contra' : 'Fuera contra'}</span>
           <button onclick="abrirModalRival('${rivalEscapado}')" class="underline decoration-sky-300 decoration-1 underline-offset-2 hover:text-sky-200 transition text-left truncate cursor-pointer">
             ${rival}
           </button>
@@ -603,7 +603,7 @@
         
         ${(rivalInfo || partidoPrevio) ? `
           <div class="mt-1 flex items-center">
-            <span class="text-[10px] bg-black/30 border border-white/10 px-2 py-0.5 rounded-md font-medium text-slate-200 flex items-center gap-1 shadow-sm flex-wrap">
+            <span class="text-[10px] bg-black/30 border border-white/10 px-2 py-0.5 rounded-md font-medium text-slate-200 flex items-center gap-1.5 shadow-sm flex-wrap">
               ${rivalInfo ? `
                 <button onclick="abrirModalRival('${rivalEscapado}')" class="text-left flex items-center gap-1 hover:opacity-80">
                   <span>📊 Rival:</span>
@@ -621,14 +621,14 @@
           </div>
         ` : ''}
 
-        <div class="text-xs text-sky-100 flex items-center gap-1 mt-1.5">
-          <span class="text-sm">📍</span>
+        <div class="text-base text-sky-100 flex items-center gap-1.5 mt-2">
+          <span class="text-lg">📍</span>
           ${urlMaps ? `
-            <a href="${urlMaps}" target="_blank" rel="noopener noreferrer" class="underline hover:text-white flex items-center gap-1.5 font-medium bg-black/20 px-2 py-0.5 rounded-md transition truncate">
-              <span class="truncate max-w-[210px]">${p.campo}</span>
+            <a href="${urlMaps}" target="_blank" rel="noopener noreferrer" class="underline hover:text-white flex items-center gap-1.5 font-bold bg-black/20 px-2.5 py-1 rounded-lg transition truncate shadow-inner">
+              <span class="truncate max-w-[200px]">${p.campo}</span>
               <span class="text-[10px] text-sky-300 font-black uppercase tracking-wider shrink-0">Maps ↗</span>
             </a>
-          ` : `<span class="truncate font-medium">${p.campo}</span>`}
+          ` : `<span class="truncate font-bold">${p.campo}</span>`}
         </div>
         
         <!-- CONTENEDOR DEL CLIMA -->
