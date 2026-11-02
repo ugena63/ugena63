@@ -301,33 +301,76 @@
     async function cargarTiempoPrevisto(fechaStr, horaStr) {
       const weatherContainer = document.getElementById("weather-container");
       if (!weatherContainer) return;
-      if (!fechaStr || !horaStr) {
-        weatherContainer.innerHTML = `<span class="text-[9px] text-slate-400">Sin hora</span>`;
+      if (!fechaStr) {
+        weatherContainer.innerHTML = `<span class="text-[9px] text-slate-400">Sin fecha</span>`;
         return;
       }
 
       const partes = fechaStr.trim().split(/[\/\-]/);
       let isoDate = "";
       if (partes.length === 3) {
-        if (partes[0].length === 4) { isoDate = `${partes[0]}-${partes[1].padStart(2, '0')}-${partes[2].padStart(2, '0')}`; } 
-        else { isoDate = `${partes[2]}-${partes[1].padStart(2, '0')}-${partes[0].padStart(2, '0')}`; }
+        if (partes[0].length === 4) { 
+          isoDate = `${partes[0]}-${partes[1].padStart(2, '0')}-${partes[2].padStart(2, '0')}`; 
+        } else { 
+          isoDate = `${partes[2]}-${partes[1].padStart(2, '0')}-${partes[0].padStart(2, '0')}`; 
+        }
       } else {
         weatherContainer.innerHTML = `<span class="text-[9px] text-slate-400">Fecha no válida</span>`;
         return;
       }
 
-      let horaRedondeada = horaStr.split(":")[0];
-      if (horaRedondeada.length === 1) horaRedondeada = "0" + horaRedondeada;
-      const targetTimeISO = `${isoDate}T${horaRedondeada}:00`;
+      // Si no hay hora definida, asumimos las 12:00 por defecto
+      let horaNum = 12;
+      if (horaStr && horaStr.includes(':')) {
+        horaNum = parseInt(horaStr.split(':')[0], 10);
+      }
+      const horaPad = String(horaNum).padStart(2, '0');
+      const targetTimeISO = `${isoDate}T${horaPad}:00`;
 
       const hoy = new Date();
-      const fechaPartidoObj = new Date(isoDate);
+      const fechaPartidoObj = new Date(`${isoDate}T${horaPad}:00`);
       const diferenciaDias = (fechaPartidoObj.getTime() - hoy.getTime()) / (1000 * 3600 * 24);
 
       if (diferenciaDias < -1 || diferenciaDias > 7) {
-        weatherContainer.innerHTML = `<span class="text-[9px] text-slate-400">Pronóstico fuera de rango</span>`;
+        weatherContainer.innerHTML = `<span class="text-[9px] text-slate-400">Pronóstico no disponible (+7 días)</span>`;
         return;
       }
+
+      try {
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${LATITUD_DEFECTO}&longitude=${LONGITUD_DEFECTO}&hourly=temperature_2m,precipitation_probability,weather_code&timezone=Europe%2FMadrid&forecast_days=8`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error("Fallo en API clima");
+        const data = await res.json();
+
+        // Buscar coincidencia exacta o la hora más cercana en esa fecha
+        let idx = data.hourly.time.indexOf(targetTimeISO);
+        if (idx === -1) {
+          idx = data.hourly.time.findIndex(t => t.startsWith(isoDate));
+        }
+
+        if (idx !== -1) {
+          const temp = Math.round(data.hourly.temperature_2m[idx]);
+          const prob = data.hourly.precipitation_probability[idx] ?? 0;
+          // Open-Meteo usa weather_code (o weathercode)
+          const code = data.hourly.weather_code ? data.hourly.weather_code[idx] : (data.hourly.weathercode ? data.hourly.weathercode[idx] : 0);
+          const clima = interpretarClima(code);
+
+          weatherContainer.innerHTML = `
+            <div class="flex items-center gap-1.5 bg-black/20 border border-white/10 px-2 py-0.5 rounded-md mt-1.5">
+              <span class="text-[10px] text-slate-300 font-medium">Clima previsto:</span>
+              <span class="text-xs" title="${clima.desc}">${clima.emoji}</span>
+              <span class="text-[11px] font-bold text-white">${temp}°C</span>
+              <span class="text-[9px] font-medium ${prob > 30 ? 'text-sky-300' : 'text-slate-300'}">💧 ${prob}% Probabilidad de lluvia</span>
+            </div>
+          `;
+        } else {
+          weatherContainer.innerHTML = `<span class="text-[9px] text-slate-400">Sin pronóstico para ese día</span>`;
+        }
+      } catch (err) {
+        console.error("Error al consultar el clima:", err);
+        weatherContainer.innerHTML = `<span class="text-[9px] text-rose-300">Error al cargar clima</span>`;
+      }
+    }
 
       try {
         const url = `https://api.open-meteo.com/v1/forecast?latitude=${LATITUD_DEFECTO}&longitude=${LONGITUD_DEFECTO}&hourly=temperature_2m,precipitation_probability,weathercode&timezone=Europe%2FMadrid&forecast_days=8`;
