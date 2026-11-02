@@ -621,15 +621,15 @@
           </div>
         ` : ''}
 
-        <div class="text-base text-sky-100 flex items-center gap-1.5 mt-2">
-          <span class="text-lg">📍</span>
-          ${urlMaps ? `
-            <a href="${urlMaps}" target="_blank" rel="noopener noreferrer" class="underline hover:text-white flex items-center gap-1.5 font-bold bg-black/20 px-2.5 py-1 rounded-lg transition truncate shadow-inner">
-              <span class="truncate max-w-[200px]">${p.campo}</span>
-              <span class="text-[10px] text-sky-300 font-black uppercase tracking-wider shrink-0">Maps ↗</span>
-            </a>
-          ` : `<span class="truncate font-bold">${p.campo}</span>`}
-        </div>
+  <div class="text-sm text-sky-100 flex items-start gap-1.5 mt-2">
+      <span class="text-base shrink-0 mt-0.5">📍</span>
+      ${urlMaps ? `
+      <a href="${urlMaps}" target="_blank" rel="noopener noreferrer" class="underline hover:text-white inline-flex flex-wrap items-center gap-1.5 font-bold bg-black/20 px-2.5 py-1 rounded-lg transition shadow-inner">
+      <span class="break-words">${p.campo}</span>
+      <span class="text-[10px] text-sky-300 font-black uppercase tracking-wider shrink-0">Maps ↗</span>
+      </a>
+      ` : `<span class="break-words font-bold">${p.campo}</span>`}
+  </div>
         
         <!-- CONTENEDOR DEL CLIMA -->
         <div id="weather-container"></div>
