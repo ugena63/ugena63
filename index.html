@@ -298,13 +298,92 @@
       return { emoji: "🌤️", desc: "Variable" };
     }
 
-    async function cargarTiempoPrevisto(fechaStr, horaStr) {
+async function cargarTiempoPrevisto(fechaStr, horaStr) {
       const weatherContainer = document.getElementById("weather-container");
       if (!weatherContainer) return;
+
       if (!fechaStr) {
         weatherContainer.innerHTML = `<span class="text-[9px] text-slate-400">Sin fecha</span>`;
         return;
       }
+
+      // 1. Extraer día, mes y año admitiendo DD/MM/AAAA o AAAA-MM-DD
+      const partes = fechaStr.trim().split(/[\/\-]/);
+      let isoDate = "";
+      if (partes.length === 3) {
+        if (partes[0].length === 4) {
+          isoDate = `${partes[0]}-${partes[1].padStart(2, '0')}-${partes[2].padStart(2, '0')}`;
+        } else {
+          isoDate = `${partes[2]}-${partes[1].padStart(2, '0')}-${partes[0].padStart(2, '0')}`;
+        }
+      } else {
+        weatherContainer.innerHTML = `<span class="text-[9px] text-slate-400">Fecha no válida</span>`;
+        return;
+      }
+
+      // 2. Extraer hora (o 12:00 por defecto)
+      let horaNum = 12;
+      if (horaStr && horaStr.includes(':')) {
+        const h = parseInt(horaStr.split(':')[0], 10);
+        if (!isNaN(h)) horaNum = h;
+      }
+      const horaPad = String(horaNum).padStart(2, '0');
+      const targetTimeISO = `${isoDate}T${horaPad}:00`;
+
+      // 3. Comprobar si está en el rango de los próximos 7 días
+      const hoy = new Date();
+      const fechaPartidoObj = new Date(isoDate + "T12:00:00");
+      const diferenciaDias = (fechaPartidoObj.getTime() - hoy.getTime()) / (1000 * 3600 * 24);
+
+      if (diferenciaDias < -1 || diferenciaDias > 7) {
+        weatherContainer.innerHTML = `<span class="text-[9px] text-slate-400">Pronóstico solo disponible a 7 días</span>`;
+        return;
+      }
+
+      // 4. Llamada a Open-Meteo con parámetros estándar
+      try {
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${LATITUD_DEFECTO}&longitude=${LONGITUD_DEFECTO}&hourly=temperature_2m,precipitation_probability,weathercode&timezone=auto&forecast_days=8`;
+        const res = await fetch(url);
+        
+        if (!res.ok) {
+          const errBody = await res.text();
+          console.error("Open-Meteo respondió con error HTTP:", res.status, errBody);
+          throw new Error("HTTP " + res.status);
+        }
+
+        const data = await res.json();
+        if (!data.hourly || !data.hourly.time) {
+          throw new Error("Respuesta incompleta de API");
+        }
+
+        // Buscar la hora exacta o el primer registro del día
+        let idx = data.hourly.time.indexOf(targetTimeISO);
+        if (idx === -1) {
+          idx = data.hourly.time.findIndex(t => t.startsWith(isoDate));
+        }
+
+        if (idx !== -1) {
+          const temp = Math.round(data.hourly.temperature_2m[idx]);
+          const prob = data.hourly.precipitation_probability ? data.hourly.precipitation_probability[idx] : 0;
+          const code = (data.hourly.weathercode !== undefined) ? data.hourly.weathercode[idx] : 0;
+          const clima = interpretarClima(code);
+
+          weatherContainer.innerHTML = `
+            <div class="flex items-center gap-1.5 bg-black/20 border border-white/10 px-2 py-0.5 rounded-md mt-1.5">
+              <span class="text-[10px] text-slate-300 font-medium">Clima previsto:</span>
+              <span class="text-xs" title="${clima.desc}">${clima.emoji}</span>
+              <span class="text-[11px] font-bold text-white">${temp}°C</span>
+              <span class="text-[9px] font-medium ${prob > 30 ? 'text-sky-300' : 'text-slate-300'}">💧 ${prob}% Probabilidad de lluvia</span>
+            </div>
+          `;
+        } else {
+          weatherContainer.innerHTML = `<span class="text-[9px] text-slate-400">Sin previsión para este día</span>`;
+        }
+      } catch (err) {
+        console.error("Detalle del error de clima:", err);
+        weatherContainer.innerHTML = `<span class="text-[9px] text-rose-300">Error al cargar clima</span>`;
+      }
+    }
 
       const partes = fechaStr.trim().split(/[\/\-]/);
       let isoDate = "";
