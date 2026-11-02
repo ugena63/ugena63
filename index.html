@@ -53,13 +53,11 @@
         <div id="next-match-content"></div>
       </div>
 
-      <!-- Tarjeta Posición + Puntos -->
-      <div id="quick-standing" class="bg-slate-800 border border-slate-700 rounded-xl p-3 flex justify-between items-center"></div>
-
       <!-- Balance de Temporada -->
-      <div>
-        <h2 class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">Balance de Temporada</h2>
-        <div class="grid grid-cols-4 gap-2 text-center mb-2">
+      <div class="space-y-2">
+        <h2 class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Balance de Temporada</h2>
+        
+        <div class="grid grid-cols-4 gap-2 text-center">
           <div class="bg-slate-800 rounded-xl p-2.5 border border-slate-700">
             <span class="text-[10px] text-slate-400 block">Jugados</span>
             <span id="kpi-pj" class="text-base font-black text-white">-</span>
@@ -86,6 +84,29 @@
           <div class="bg-slate-800 rounded-xl p-3 border border-slate-700">
             <span class="text-[11px] text-slate-400 block">Goles en Contra</span>
             <span id="kpi-gc" class="text-lg font-black text-slate-200">-</span>
+          </div>
+        </div>
+
+        <!-- 2 RECUADROS DESTACADOS: POSICIÓN Y PUNTOS EN LIGA -->
+        <div class="grid grid-cols-2 gap-3 pt-2">
+          <!-- Recuadro Posición -->
+          <div class="bg-slate-800/95 border-t-4 border-t-sky-500 border border-slate-700 rounded-2xl p-3.5 flex flex-col items-center justify-center text-center shadow-md">
+            <div class="flex items-center gap-1.5 mb-0.5">
+              <span class="text-xs">🏆</span>
+              <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Posición Liga</span>
+            </div>
+            <div id="destacado-posicion" class="text-3xl font-black text-sky-400 my-0.5 leading-tight">-º</div>
+            <span class="text-[9px] text-slate-400">En la clasificación</span>
+          </div>
+
+          <!-- Recuadro Puntos -->
+          <div class="bg-slate-800/95 border-t-4 border-t-emerald-500 border border-slate-700 rounded-2xl p-3.5 flex flex-col items-center justify-center text-center shadow-md">
+            <div class="flex items-center gap-1.5 mb-0.5">
+              <span class="text-xs">⭐</span>
+              <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Puntos</span>
+            </div>
+            <div id="destacado-puntos" class="text-3xl font-black text-emerald-400 my-0.5 leading-tight">-</div>
+            <span class="text-[9px] text-slate-400">Puntos sumados</span>
           </div>
         </div>
       </div>
@@ -174,7 +195,7 @@
 
   <script>
     const ID_HOJA = "13hXI7RhIPz9SvvFghuCedKNm6aC-HxTdXkasN5afS8g";
-    const APP_VERSION = "v1.4.3";
+    const APP_VERSION = "v1.5.0";
     const elVer = document.getElementById('txt-version');
     if (elVer) elVer.innerText = APP_VERSION;
 
@@ -450,8 +471,8 @@
       document.getElementById('txt-version').innerText = APP_VERSION;
 
       renderNextMatch();
-      renderQuickStanding();
       renderKPIs();
+      renderDestacadosInicio();
       renderClasificacion();
       renderPartidos('todos');
       renderGoleadores();
@@ -527,19 +548,17 @@
       cargarTiempoPrevisto(p.fecha, p.hora);
     }
 
-    function renderQuickStanding() {
+    function renderDestacadosInicio() {
       const posUgena = (appData.clasificacion || []).find(c => c.esUgena);
-      const container = document.getElementById('quick-standing');
+      const elPos = document.getElementById('destacado-posicion');
+      const elPts = document.getElementById('destacado-puntos');
+
       if (posUgena) {
-        container.innerHTML = `
-          <div>
-            <span class="text-[10px] text-slate-400 uppercase font-semibold block">Posición en Liga</span>
-            <span class="text-sm font-bold text-white">${posUgena.pos}º Clasificado</span>
-          </div>
-          <span class="text-xs bg-sky-500/20 text-sky-400 font-black px-2.5 py-1 rounded-lg border border-sky-500/30">
-            ${posUgena.ptos} Puntos
-          </span>
-        `;
+        if (elPos) elPos.textContent = `${posUgena.pos}º`;
+        if (elPts) elPts.textContent = posUgena.ptos;
+      } else {
+        if (elPos) elPos.textContent = "-º";
+        if (elPts) elPts.textContent = "0";
       }
     }
 
