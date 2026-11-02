@@ -621,14 +621,14 @@
           </div>
         ` : ''}
 
-        <div class="text-[10px] text-sky-100 flex items-center gap-1 mt-1.5">
-          <span>📍</span>
+        <div class="text-base text-sky-100 flex items-center gap-1.5 mt-2">
+          <span class="text-lg">📍</span>
           ${urlMaps ? `
-            <a href="${urlMaps}" target="_blank" rel="noopener noreferrer" class="underline hover:text-white flex items-center gap-1 font-medium bg-black/20 px-1.5 py-0.5 rounded transition truncate">
+            <a href="${urlMaps}" target="_blank" rel="noopener noreferrer" class="underline hover:text-white flex items-center gap-1.5 font-bold bg-black/20 px-2.5 py-1 rounded-lg transition truncate shadow-inner">
               <span class="truncate max-w-[200px]">${p.campo}</span>
-              <span class="text-[8px] text-sky-300 font-bold uppercase tracking-wider shrink-0">Maps ↗</span>
+              <span class="text-[10px] text-sky-300 font-black uppercase tracking-wider shrink-0">Maps ↗</span>
             </a>
-          ` : `<span class="truncate">${p.campo}</span>`}
+          ` : `<span class="truncate font-bold">${p.campo}</span>`}
         </div>
         
         <!-- CONTENEDOR DEL CLIMA -->
