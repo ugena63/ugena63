@@ -176,6 +176,73 @@
 
   </main>
 
+  <!-- MODAL DE ESTADÍSTICAS DEL RIVAL -->
+  <div id="modal-rival" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-sm w-full p-4 shadow-2xl space-y-3 transform transition-all">
+      <div class="flex justify-between items-start border-b border-slate-700 pb-2.5">
+        <div>
+          <span class="text-[10px] font-bold uppercase tracking-wider text-sky-400 block">Estadísticas del Rival</span>
+          <h3 id="modal-rival-nombre" class="text-base font-extrabold text-white leading-tight"></h3>
+        </div>
+        <button onclick="cerrarModalRival()" class="text-slate-400 hover:text-white p-1 rounded-lg bg-slate-700/50">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <!-- Resumen Puntos y Puesto -->
+      <div class="grid grid-cols-2 gap-2 text-center">
+        <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-700">
+          <span class="text-[10px] text-slate-400 block">Puesto</span>
+          <span id="modal-rival-pos" class="text-xl font-black text-amber-400">-</span>
+        </div>
+        <div class="bg-slate-900/80 p-2.5 rounded-xl border border-slate-700">
+          <span class="text-[10px] text-slate-400 block">Puntos</span>
+          <span id="modal-rival-pts" class="text-xl font-black text-sky-400">-</span>
+        </div>
+      </div>
+
+      <!-- Victorias / Empates / Derrotas -->
+      <div class="grid grid-cols-4 gap-2 text-center">
+        <div class="bg-slate-700/40 p-2 rounded-xl border border-slate-700">
+          <span class="text-[9px] text-slate-400 block">Jugados</span>
+          <span id="modal-rival-pj" class="text-sm font-bold text-white">-</span>
+        </div>
+        <div class="bg-emerald-950/40 p-2 rounded-xl border border-emerald-600/30">
+          <span class="text-[9px] text-emerald-400 block">Ganados</span>
+          <span id="modal-rival-pg" class="text-sm font-bold text-emerald-400">-</span>
+        </div>
+        <div class="bg-amber-950/40 p-2 rounded-xl border border-amber-600/30">
+          <span class="text-[9px] text-amber-400 block">Empatados</span>
+          <span id="modal-rival-pe" class="text-sm font-bold text-amber-400">-</span>
+        </div>
+        <div class="bg-rose-950/40 p-2 rounded-xl border border-rose-600/30">
+          <span class="text-[9px] text-rose-400 block">Perdidos</span>
+          <span id="modal-rival-pp" class="text-sm font-bold text-rose-400">-</span>
+        </div>
+      </div>
+
+      <!-- Goles -->
+      <div class="grid grid-cols-3 gap-2 text-center text-xs">
+        <div class="bg-slate-900/60 p-2 rounded-xl border border-slate-700">
+          <span class="text-[9px] text-slate-400 block">Goles +</span>
+          <span id="modal-rival-gf" class="font-bold text-slate-200">-</span>
+        </div>
+        <div class="bg-slate-900/60 p-2 rounded-xl border border-slate-700">
+          <span class="text-[9px] text-slate-400 block">Goles -</span>
+          <span id="modal-rival-gc" class="font-bold text-slate-200">-</span>
+        </div>
+        <div class="bg-slate-900/60 p-2 rounded-xl border border-slate-700">
+          <span class="text-[9px] text-slate-400 block">DIF</span>
+          <span id="modal-rival-dif" class="font-bold text-slate-200">-</span>
+        </div>
+      </div>
+
+      <button onclick="cerrarModalRival()" class="w-full py-2 bg-sky-600 hover:bg-sky-500 font-bold text-xs rounded-xl text-white transition shadow">
+        Cerrar
+      </button>
+    </div>
+  </div>
+
   <!-- NAVEGACIÓN INFERIOR (FIJA Y COMPATIBLE) -->
   <nav class="fixed bottom-0 inset-x-0 bg-slate-800/95 backdrop-blur border-t border-slate-700 py-2 px-3 pb-[max(0.5rem,env(safe-area-inset-bottom))] flex justify-around z-40 shadow-lg">
     <button onclick="switchTab('inicio', this)" class="nav-btn active flex flex-col items-center text-sky-400">
@@ -202,7 +269,7 @@
 
   <script>
     const ID_HOJA = "13hXI7RhIPz9SvvFghuCedKNm6aC-HxTdXkasN5afS8g";
-    const APP_VERSION = "v1.5.1";
+    const APP_VERSION = "v1.6.0";
     const elVer = document.getElementById('txt-version');
     if (elVer) elVer.innerText = APP_VERSION;
 
@@ -514,21 +581,34 @@
         else colorResIda = "text-amber-400";
       }
 
+      // Nombre del rival en formato clickable
+      const rivalEscapado = rival.replace(/'/g, "\\'");
+
       container.innerHTML = `
         <div class="flex justify-between items-baseline mb-1">
           <span class="text-xs text-sky-200 font-semibold">Jornada ${p.jornada}</span>
           <span class="text-xs bg-sky-950/70 border border-sky-400/30 px-2 py-0.5 rounded text-white font-medium">${fechaConDia}</span>
         </div>
-        <div class="text-base font-extrabold text-white">${esLocal ? 'En Casa vs ' + rival : 'Fuera vs ' + rival}</div>
+        
+        <div class="text-base font-extrabold text-white flex items-center gap-1.5 flex-wrap">
+          <span>${esLocal ? 'En Casa vs' : 'Fuera vs'}</span>
+          <button onclick="abrirModalRival('${rivalEscapado}')" class="underline decoration-sky-300 decoration-2 underline-offset-4 hover:text-sky-200 transition text-left cursor-pointer flex items-center gap-1">
+            <span>${rival}</span>
+            <span class="text-[10px] bg-black/30 border border-white/20 px-1.5 py-0.2 rounded font-normal text-sky-300">ℹ️ Ver stats</span>
+          </button>
+        </div>
         
         ${(rivalInfo || partidoPrevio) ? `
-          <div class="mt-1.5 flex items-center">
+          <div class="mt-2 flex items-center">
             <span class="text-[11px] bg-black/30 border border-white/10 px-2 py-0.5 rounded-md font-medium text-slate-200 flex items-center gap-1.5 shadow-sm flex-wrap">
               ${rivalInfo ? `
-                <span>📊 Rival:</span>
-                <strong class="text-amber-300 font-bold">${rivalInfo.pos}º en liga</strong>
-                <span class="text-slate-400">·</span>
-                <span class="text-sky-300 font-semibold">${rivalInfo.ptos} Puntos</span>
+                <button onclick="abrirModalRival('${rivalEscapado}')" class="text-left flex items-center gap-1 hover:opacity-80">
+                  <span>📊 Rival:</span>
+                  <strong class="text-amber-300 font-bold">${rivalInfo.pos}º en liga</strong>
+                  <span class="text-slate-400">·</span>
+                  <span class="text-sky-300 font-semibold">${rivalInfo.ptos} Puntos</span>
+                  <span class="text-[10px] text-emerald-400 font-bold ml-1">(${rivalInfo.pg}V - ${rivalInfo.pp}D)</span>
+                </button>
               ` : ''}
               ${partidoPrevio ? `
                 ${rivalInfo ? '<span class="text-slate-400">·</span>' : ''}
@@ -567,7 +647,7 @@
       }
 
       if (card) card.classList.remove('hidden');
-      const p = finalizados[finalizados.length - 1]; // Último encuentro disputado
+      const p = finalizados[finalizados.length - 1];
 
       const esLocal = (p.local || "").toUpperCase().includes('UGENA');
       const gLocal = Number(p.golesLocal) || 0;
@@ -827,6 +907,53 @@
         }, 50);
       }
     }
+
+    // ==========================================
+    // FUNCIONES DEL MODAL DE DETALLES DEL RIVAL
+    // ==========================================
+    function abrirModalRival(nombreRival) {
+      const modal = document.getElementById('modal-rival');
+      const info = obtenerInfoEquipo(nombreRival);
+
+      document.getElementById('modal-rival-nombre').innerText = nombreRival;
+
+      if (info) {
+        document.getElementById('modal-rival-pos').innerText = `${info.pos}º`;
+        document.getElementById('modal-rival-pts').innerText = info.ptos;
+        document.getElementById('modal-rival-pj').innerText = info.pj;
+        document.getElementById('modal-rival-pg').innerText = info.pg;
+        document.getElementById('modal-rival-pe').innerText = info.pe;
+        document.getElementById('modal-rival-pp').innerText = info.pp;
+        document.getElementById('modal-rival-gf').innerText = info.gf;
+        document.getElementById('modal-rival-gc').innerText = info.gc;
+        document.getElementById('modal-rival-dif').innerText = info.dif > 0 ? `+${info.dif}` : info.dif;
+      } else {
+        document.getElementById('modal-rival-pos').innerText = "-";
+        document.getElementById('modal-rival-pts').innerText = "-";
+        document.getElementById('modal-rival-pj').innerText = "-";
+        document.getElementById('modal-rival-pg').innerText = "-";
+        document.getElementById('modal-rival-pe').innerText = "-";
+        document.getElementById('modal-rival-pp').innerText = "-";
+        document.getElementById('modal-rival-gf').innerText = "-";
+        document.getElementById('modal-rival-gc').innerText = "-";
+        document.getElementById('modal-rival-dif').innerText = "-";
+      }
+
+      modal.classList.remove('hidden');
+    }
+
+    function cerrarModalRival() {
+      const modal = document.getElementById('modal-rival');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    // Cerrar el modal al hacer clic fuera del recuadro
+    window.addEventListener('click', (e) => {
+      const modal = document.getElementById('modal-rival');
+      if (e.target === modal) {
+        cerrarModalRival();
+      }
+    });
 
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', cargarDatos);
