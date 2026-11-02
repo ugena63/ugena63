@@ -319,7 +319,6 @@
         return;
       }
 
-      // Si no hay hora definida, asumimos las 12:00 por defecto
       let horaNum = 12;
       if (horaStr && horaStr.includes(':')) {
         horaNum = parseInt(horaStr.split(':')[0], 10);
@@ -342,7 +341,6 @@
         if (!res.ok) throw new Error("Fallo en API clima");
         const data = await res.json();
 
-        // Buscar coincidencia exacta o la hora más cercana en esa fecha
         let idx = data.hourly.time.indexOf(targetTimeISO);
         if (idx === -1) {
           idx = data.hourly.time.findIndex(t => t.startsWith(isoDate));
@@ -351,8 +349,7 @@
         if (idx !== -1) {
           const temp = Math.round(data.hourly.temperature_2m[idx]);
           const prob = data.hourly.precipitation_probability[idx] ?? 0;
-          // Open-Meteo usa weather_code (o weathercode)
-          const code = data.hourly.weather_code ? data.hourly.weather_code[idx] : (data.hourly.weathercode ? data.hourly.weathercode[idx] : 0);
+          const code = data.hourly.weather_code !== undefined ? data.hourly.weather_code[idx] : (data.hourly.weathercode || 0);
           const clima = interpretarClima(code);
 
           weatherContainer.innerHTML = `
@@ -369,34 +366,6 @@
       } catch (err) {
         console.error("Error al consultar el clima:", err);
         weatherContainer.innerHTML = `<span class="text-[9px] text-rose-300">Error al cargar clima</span>`;
-      }
-    }
-
-      try {
-        const url = `https://api.open-meteo.com/v1/forecast?latitude=${LATITUD_DEFECTO}&longitude=${LONGITUD_DEFECTO}&hourly=temperature_2m,precipitation_probability,weathercode&timezone=Europe%2FMadrid&forecast_days=8`;
-        const res = await fetch(url);
-        const data = await res.json();
-        
-        const idx = data.hourly.time.indexOf(targetTimeISO);
-        if (idx !== -1) {
-          const temp = Math.round(data.hourly.temperature_2m[idx]);
-          const prob = data.hourly.precipitation_probability[idx];
-          const code = data.hourly.weathercode[idx];
-          const clima = interpretarClima(code);
-
-          weatherContainer.innerHTML = `
-            <div class="flex items-center gap-1.5 bg-black/20 border border-white/10 px-2 py-0.5 rounded-md mt-1.5">
-              <span class="text-[10px] text-slate-300 font-medium">Clima previsto:</span>
-              <span class="text-xs" title="${clima.desc}">${clima.emoji}</span>
-              <span class="text-[11px] font-bold text-white">${temp}°C</span>
-              <span class="text-[9px] font-medium ${prob > 30 ? 'text-sky-300' : 'text-slate-300'}">💧 ${prob}% Probabilidad de lluvia</span>
-            </div>
-          `;
-        } else {
-          weatherContainer.innerHTML = `<span class="text-[9px] text-slate-400">Sin pronóstico</span>`;
-        }
-      } catch (err) {
-        weatherContainer.innerHTML = `<span class="text-[9px] text-rose-300">Error clima</span>`;
       }
     }
 
@@ -674,7 +643,6 @@
           ` : `<span class="truncate font-bold">${p.campo}</span>`}
         </div>
         
-        <!-- CONTENEDOR DEL CLIMA -->
         <div id="weather-container"></div>
       `;
 
@@ -953,9 +921,6 @@
       }
     }
 
-    // ==========================================
-    // FUNCIONES DEL MODAL DE DETALLES DEL RIVAL
-    // ==========================================
     function abrirModalRival(nombreRival) {
       const modal = document.getElementById('modal-rival');
       const info = obtenerInfoEquipo(nombreRival);
