@@ -48,12 +48,19 @@
 
     <!-- 1. PESTAÑA: INICIO -->
     <section id="tab-inicio" class="tab-content active space-y-4">
+      
+      <!-- 1.1 PRÓXIMO ENCUENTRO -->
       <div class="bg-gradient-to-br from-sky-600 to-indigo-700 rounded-2xl p-4 shadow-lg text-white">
         <span class="text-[10px] font-bold uppercase tracking-wider bg-black/25 px-2 py-0.5 rounded-full inline-block mb-2">Próximo Encuentro</span>
         <div id="next-match-content"></div>
       </div>
 
-      <!-- Balance de Temporada -->
+      <!-- 1.2 ÚLTIMO PARTIDO JUGADO -->
+      <div id="last-match-card" class="bg-slate-800 border border-slate-700 rounded-2xl p-4 shadow-sm">
+        <div id="last-match-content"></div>
+      </div>
+
+      <!-- 1.3 BALANCE DE TEMPORADA -->
       <div class="space-y-2">
         <h2 class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Balance de Temporada</h2>
         
@@ -195,7 +202,7 @@
 
   <script>
     const ID_HOJA = "13hXI7RhIPz9SvvFghuCedKNm6aC-HxTdXkasN5afS8g";
-    const APP_VERSION = "v1.5.0";
+    const APP_VERSION = "v1.5.1";
     const elVer = document.getElementById('txt-version');
     if (elVer) elVer.innerText = APP_VERSION;
 
@@ -471,6 +478,7 @@
       document.getElementById('txt-version').innerText = APP_VERSION;
 
       renderNextMatch();
+      renderLastMatch();
       renderKPIs();
       renderDestacadosInicio();
       renderClasificacion();
@@ -546,6 +554,60 @@
       `;
 
       cargarTiempoPrevisto(p.fecha, p.hora);
+    }
+
+    function renderLastMatch() {
+      const container = document.getElementById('last-match-content');
+      const card = document.getElementById('last-match-card');
+      const finalizados = (appData.partidos || []).filter(p => p.estado === 'Finalizado');
+
+      if (finalizados.length === 0) {
+        if (card) card.classList.add('hidden');
+        return;
+      }
+
+      if (card) card.classList.remove('hidden');
+      const p = finalizados[finalizados.length - 1]; // Último encuentro disputado
+
+      const esLocal = (p.local || "").toUpperCase().includes('UGENA');
+      const gLocal = Number(p.golesLocal) || 0;
+      const gVisitante = Number(p.golesVisitante) || 0;
+      const gUgena = esLocal ? gLocal : gVisitante;
+      const gRival = esLocal ? gVisitante : gLocal;
+
+      let badgeTexto = "Empate";
+      let badgeClase = "bg-amber-500/20 text-amber-300 border border-amber-500/30";
+
+      if (gUgena > gRival) {
+        badgeTexto = "Victoria";
+        badgeClase = "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30";
+      } else if (gUgena < gRival) {
+        badgeTexto = "Derrota";
+        badgeClase = "bg-rose-500/20 text-rose-300 border border-rose-500/30";
+      }
+
+      container.innerHTML = `
+        <div class="flex justify-between items-center mb-2">
+          <div class="flex items-center gap-2">
+            <span class="text-[10px] font-bold uppercase tracking-wider bg-slate-700/80 text-slate-300 px-2 py-0.5 rounded-full border border-slate-600">Último Partido</span>
+            <span class="text-xs text-sky-400 font-semibold">Jornada ${p.jornada}</span>
+          </div>
+          <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${badgeClase}">${badgeTexto}</span>
+        </div>
+
+        <div class="flex items-center justify-between text-xs font-semibold py-1">
+          <span class="truncate flex-1 ${esLocal ? 'text-sky-300 font-bold' : 'text-slate-200'}">${p.local}</span>
+          <div class="px-3 py-1 mx-2 rounded-lg bg-slate-900 border border-slate-700 text-sm font-black text-white shrink-0 tracking-widest shadow-inner">
+            ${p.golesLocal} - ${p.golesVisitante}
+          </div>
+          <span class="truncate flex-1 text-right ${!esLocal ? 'text-sky-300 font-bold' : 'text-slate-200'}">${p.visitante}</span>
+        </div>
+
+        <div class="flex justify-between items-center text-[10px] text-slate-400 border-t border-slate-700/50 mt-2.5 pt-2">
+          <span>📅 ${p.fecha} ${p.hora ? '· ' + p.hora : ''}</span>
+          ${p.urlActa ? `<a href="${p.urlActa}" target="_blank" rel="noopener noreferrer" class="text-sky-400 font-bold hover:underline">Ver Acta ↗</a>` : ''}
+        </div>
+      `;
     }
 
     function renderDestacadosInicio() {
