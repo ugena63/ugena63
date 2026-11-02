@@ -669,11 +669,10 @@
       }
 
       container.innerHTML = `
-        <div class="flex justify-between items-center mb-1.5">
-          <div class="flex items-center gap-1.5">
-            <span class="text-[9px] font-bold uppercase tracking-wider bg-slate-700/80 text-slate-300 px-1.5 py-0.5 rounded-full border border-slate-600">Último Partido</span>
-            <span class="text-[11px] text-sky-400 font-semibold">Jornada ${p.jornada}</span>
-          </div>
+        <div class="flex justify-between items-center mb-1">
+          <span class="text-[11px] text-sky-200 font-semibold">Jornada ${p.jornada}</span>
+          <span class="text-xs font-bold bg-sky-950/70 border border-sky-400/30 px-2 py-0.5 rounded-md text-white tracking-wide shadow-sm">${fechaConDia}</span>
+        </div>
           <span class="text-[9px] font-bold px-1.5 py-0.5 rounded-full ${badgeClase}">${badgeTexto}</span>
         </div>
 
@@ -771,13 +770,15 @@
               <span class="px-2 py-0.5 mx-2 rounded text-xs ${finalizado ? 'bg-slate-700 text-white font-black' : 'text-slate-500 font-normal'}">${finalizado ? p.golesLocal + ' - ' + p.golesVisitante : 'vs'}</span>
               <span class="truncate flex-1 text-right ${(p.visitante || '').toUpperCase().includes('UGENA') ? 'text-sky-300 font-bold' : 'text-slate-200'}">${p.visitante}</span>
             </div>
-            <div class="text-[10px] text-slate-400 mt-2 truncate flex items-center justify-between border-t border-slate-700/50 pt-2">
-              <span class="truncate flex items-center gap-1">
-                <span>📍</span>
-                ${urlMaps ? `<a href="${urlMaps}" target="_blank" rel="noopener noreferrer" class="hover:text-sky-300 underline">${p.campo}</a>` : p.campo}
-              </span>
-              ${p.urlActa ? `<a href="${p.urlActa}" target="_blank" class="text-sky-400 font-medium underline ml-2">Acta</a>` : ''}
-            </div>
+          <div class="text-xs text-sky-100 flex items-center gap-1 mt-1.5">
+          <span class="text-sm">📍</span>
+          ${urlMaps ? `
+            <a href="${urlMaps}" target="_blank" rel="noopener noreferrer" class="underline hover:text-white flex items-center gap-1.5 font-medium bg-black/20 px-2 py-0.5 rounded-md transition truncate">
+              <span class="truncate max-w-[210px]">${p.campo}</span>
+              <span class="text-[10px] text-sky-300 font-black uppercase tracking-wider shrink-0">Maps ↗</span>
+            </a>
+          ` : `<span class="truncate font-medium">${p.campo}</span>`}
+          </div>
           </div>
         `;
       });
