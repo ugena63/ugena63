@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <title>C.D. Ugena EFM 'A'</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Oswald:wght@700&display=swap" rel="stylesheet">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -284,7 +287,7 @@
 
   <script>
     const ID_HOJA = "13hXI7RhIPz9SvvFghuCedKNm6aC-HxTdXkasN5afS8g";
-    const APP_VERSION = "v1.7.0";
+    const APP_VERSION = "v1.8.0";
     const elVer = document.getElementById('txt-version');
     if (elVer) elVer.innerText = APP_VERSION;
 
@@ -834,7 +837,7 @@
     }
 
     // ==========================================
-    // GENERACIÓN DE CARTEL DE PARTIDO EN CANVAS
+    // GENERACIÓN DE CARTEL ÉPICO EN CANVAS
     // ==========================================
     function generarCartelPartido() {
       const canvas = document.getElementById('cartel-canvas');
@@ -853,157 +856,282 @@
         badge.innerText = p ? `Jornada ${p.jornada}` : "Sin pendientes";
       }
 
-      const dibujarContenido = (imgEscudo) => {
-        // 1. Fondo degradado deportivo azul/pizarra profundo
-        const grad = ctx.createLinearGradient(0, 0, W, H);
-        grad.addColorStop(0, '#090d16');
-        grad.addColorStop(0.45, '#0f172a');
-        grad.addColorStop(0.85, '#0c4a6e');
-        grad.addColorStop(1, '#075985');
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, W, H);
+      const dibujarEscena = (imgEscudo, imgFondo) => {
+        ctx.clearRect(0, 0, W, H);
 
-        // Detalles geométricos decorativos de fondo
+        // 1. CAPA DE FONDO (Usa 'fondo-cartel.jpg' si existe en GitHub, o genera estadio nocturno con focos y chispas)
+        if (imgFondo) {
+          ctx.drawImage(imgFondo, 0, 0, W, H);
+          const vig = ctx.createRadialGradient(W / 2, H / 2, 250, W / 2, H / 2, 850);
+          vig.addColorStop(0, 'rgba(0,0,0,0.15)');
+          vig.addColorStop(1, 'rgba(2, 6, 23, 0.75)');
+          ctx.fillStyle = vig;
+          ctx.fillRect(0, 0, W, H);
+        } else {
+          dibujarFondoEstadioProcedural(ctx, W, H);
+        }
+
+        // 2. ESCUDO SUPERIOR CENTRADO
+        if (imgEscudo) {
+          ctx.save();
+          ctx.shadowColor = 'rgba(0,0,0,0.85)';
+          ctx.shadowBlur = 20;
+          ctx.shadowOffsetY = 8;
+          const escH = 185;
+          const escW = (imgEscudo.width / imgEscudo.height) * escH;
+          ctx.drawImage(imgEscudo, (W - escW) / 2, 45, escW, escH);
+          ctx.restore();
+        }
+
+        // Helper para textos con inclinación deportiva (-4.5 grados), borde grueso y sombra
+        const drawSportText = (texto, x, y, font, fillStyle, strokeWidth = 10, shadowBlur = 18) => {
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.rotate(-4.5 * Math.PI / 180);
+          ctx.font = font;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.lineJoin = 'round';
+
+          ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
+          ctx.shadowBlur = shadowBlur;
+          ctx.shadowOffsetX = 6;
+          ctx.shadowOffsetY = 10;
+
+          if (strokeWidth > 0) {
+            ctx.strokeStyle = '#050811';
+            ctx.lineWidth = strokeWidth;
+            ctx.strokeText(texto, 0, 0);
+          }
+
+          ctx.shadowColor = 'transparent';
+          ctx.fillStyle = fillStyle;
+          ctx.fillText(texto, 0, 0);
+          ctx.restore();
+        };
+
+        // 3. CABECERA CATEGORÍA Y CLUB
+        drawSportText('PREFERENTE ALEVÍN · GRUPO 6', W / 2, 275, '700 36px "Oswald", sans-serif', '#e2e8f0', 7, 10);
+        drawSportText("C.D. UGENA EFM 'A'", W / 2, 345, '400 84px "Anton", sans-serif', '#ffffff', 12, 16);
+
+        // 4. CINTA BLANCA RASGADA (JORNADA X · PRÓXIMO ENCUENTRO)
+        const cintaTexto = p ? `JORNADA ${p.jornada} · PRÓXIMO ENCUENTRO` : 'TEMPORADA FINALIZADA';
         ctx.save();
-        ctx.fillStyle = 'rgba(56, 189, 248, 0.06)';
+        ctx.translate(W / 2, 430);
+        ctx.rotate(-4.5 * Math.PI / 180);
+        ctx.shadowColor = 'rgba(0,0,0,0.7)';
+        ctx.shadowBlur = 15;
+        ctx.shadowOffsetY = 6;
+        ctx.fillStyle = '#f8fafc';
         ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.lineTo(W, 0);
-        ctx.lineTo(W, 420);
-        ctx.lineTo(0, 260);
+        ctx.moveTo(-360, -28);
+        ctx.lineTo(365, -26);
+        ctx.lineTo(350, 28);
+        ctx.lineTo(-370, 26);
         ctx.closePath();
         ctx.fill();
 
-        ctx.strokeStyle = 'rgba(14, 165, 233, 0.25)';
-        ctx.lineWidth = 4;
-        ctx.strokeRect(44, 44, W - 88, H - 88);
-        ctx.restore();
-
-        // 2. Escudo superior
-        if (imgEscudo) {
-          const escH = 210;
-          const escW = (imgEscudo.width / imgEscudo.height) * escH;
-          ctx.drawImage(imgEscudo, (W - escW) / 2, 85, escW, escH);
-        }
-
-        // 3. Cabecera del club y categoría
+        ctx.shadowColor = 'transparent';
+        ctx.fillStyle = '#090d16';
+        ctx.font = '700 34px "Oswald", sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillStyle = '#38bdf8';
-        ctx.font = 'bold 30px sans-serif';
-        ctx.fillText('PREFERENTE ALEVÍN · GRUPO 6', W / 2, 345);
-
-        ctx.fillStyle = '#ffffff';
-        ctx.font = '900 54px sans-serif';
-        ctx.fillText("C.D. UGENA EFM 'A'", W / 2, 410);
-
-        // Pill PRÓXIMO PARTIDO / JORNADA
-        const pillText = p ? `JORNADA ${p.jornada} · PRÓXIMO ENCUENTRO` : 'TEMPORADA FINALIZADA';
-        ctx.fillStyle = '#0284c7';
-        roundRect(ctx, (W - 640) / 2, 448, 640, 58, 29, true, false);
-        ctx.fillStyle = '#ffffff';
-        ctx.font = '800 28px sans-serif';
-        ctx.fillText(pillText, W / 2, 487);
+        ctx.textBaseline = 'middle';
+        ctx.fillText(cintaTexto, 0, 2);
+        ctx.restore();
 
         if (!p) {
           preview.src = canvas.toDataURL('image/png');
           return;
         }
 
-        // 4. Tarjeta central de enfrentamiento
-        ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
-        roundRect(ctx, 80, 545, W - 160, 420, 32, true, true, 'rgba(56, 189, 248, 0.35)', 3);
+        // 5. DESTELLO DE ENERGÍA DETRÁS DEL VS
+        const glow = ctx.createRadialGradient(W / 2, 725, 10, W / 2, 725, 340);
+        glow.addColorStop(0, 'rgba(255, 255, 255, 0.95)');
+        glow.addColorStop(0.25, 'rgba(125, 211, 252, 0.65)');
+        glow.addColorStop(0.6, 'rgba(2, 132, 199, 0.2)');
+        glow.addColorStop(1, 'rgba(2, 132, 199, 0)');
+        ctx.fillStyle = glow;
+        ctx.fillRect(0, 450, W, 550);
 
-        const localEsUgena = (p.local || '').toUpperCase().includes('UGENA');
-        const visEsUgena = (p.visitante || '').toUpperCase().includes('UGENA');
+        // 6. EQUIPO LOCAL (Arriba del VS)
+        const localNombre = (p.local || '').toUpperCase();
+        const fontLocal = localNombre.length > 20 ? '400 84px "Anton", sans-serif' : '400 105px "Anton", sans-serif';
+        drawSportText(localNombre, W / 2, 575, fontLocal, '#ffffff', 16, 22);
 
-        // Equipo Local
-        ctx.fillStyle = localEsUgena ? '#38bdf8' : '#ffffff';
-        ctx.font = '900 44px sans-serif';
-        dibujarTextoMultilinea(ctx, (p.local || '').toUpperCase(), W / 2, 645, W - 240, 52);
+        // 7. "VS" METÁLICO DORADO / NARANJA CENTRAL
+        ctx.save();
+        ctx.translate(W / 2, 720);
+        ctx.rotate(-4.5 * Math.PI / 180);
+        ctx.font = '400 155px "Anton", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.lineJoin = 'round';
 
-        // Badge VS central
-        ctx.fillStyle = '#f59e0b';
-        roundRect(ctx, (W - 140) / 2, 725, 140, 64, 16, true, false);
-        ctx.fillStyle = '#0f172a';
-        ctx.font = '900 38px sans-serif';
-        ctx.fillText('VS', W / 2, 770);
+        ctx.shadowColor = 'rgba(0,0,0,0.95)';
+        ctx.shadowBlur = 25;
+        ctx.shadowOffsetY = 12;
+        ctx.strokeStyle = '#090d16';
+        ctx.lineWidth = 22;
+        ctx.strokeText('VS', 0, 0);
 
-        // Equipo Visitante
-        ctx.fillStyle = visEsUgena ? '#38bdf8' : '#ffffff';
-        ctx.font = '900 44px sans-serif';
-        dibujarTextoMultilinea(ctx, (p.visitante || '').toUpperCase(), W / 2, 865, W - 240, 52);
+        ctx.shadowColor = 'transparent';
+        ctx.strokeStyle = '#fde047';
+        ctx.lineWidth = 6;
+        ctx.strokeText('VS', 0, 0);
 
-        // 5. Bloque inferior: Fecha, Hora y Campo
-        ctx.fillStyle = 'rgba(2, 132, 199, 0.22)';
-        roundRect(ctx, 80, 1005, W - 160, 235, 28, true, true, 'rgba(56, 189, 248, 0.3)', 2);
+        const vsGrad = ctx.createLinearGradient(0, -75, 0, 75);
+        vsGrad.addColorStop(0, '#fef08a');
+        vsGrad.addColorStop(0.45, '#f59e0b');
+        vsGrad.addColorStop(0.55, '#b45309');
+        vsGrad.addColorStop(1, '#fbbf24');
+        ctx.fillStyle = vsGrad;
+        ctx.fillText('VS', 0, 0);
+        ctx.restore();
 
-        const fechaLarga = formatearFechaConDia(p.fecha, p.hora).toUpperCase();
-        ctx.fillStyle = '#fde047';
-        ctx.font = '900 38px sans-serif';
-        ctx.fillText(`📅  ${fechaLarga}`, W / 2, 1085);
+        // 8. EQUIPO VISITANTE (Debajo del VS)
+        const visNombre = (p.visitante || '').toUpperCase();
+        const fontVis = visNombre.length > 20 ? '400 84px "Anton", sans-serif' : '400 105px "Anton", sans-serif';
+        drawSportText(visNombre, W / 2, 875, fontVis, '#ffffff', 16, 22);
 
+        // 9. PLACA METÁLICA INFERIOR (FECHA, HORA Y CAMPO)
+        ctx.save();
+        ctx.translate(W / 2, 1105);
+        ctx.rotate(-4.5 * Math.PI / 180);
+
+        const placaW = 920;
+        const placaH = 205;
+
+        ctx.shadowColor = 'rgba(0,0,0,0.9)';
+        ctx.shadowBlur = 25;
+        ctx.shadowOffsetY = 14;
+
+        const placaGrad = ctx.createLinearGradient(-placaW / 2, -placaH / 2, placaW / 2, placaH / 2);
+        placaGrad.addColorStop(0, '#1e293b');
+        placaGrad.addColorStop(0.5, '#0f172a');
+        placaGrad.addColorStop(1, '#1e293b');
+        ctx.fillStyle = placaGrad;
+        ctx.fillRect(-placaW / 2, -placaH / 2, placaW, placaH);
+
+        ctx.shadowColor = 'transparent';
+        ctx.strokeStyle = '#64748b';
+        ctx.lineWidth = 6;
+        ctx.strokeRect(-placaW / 2, -placaH / 2, placaW, placaH);
+
+        ctx.strokeStyle = '#ea580c';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(-placaW / 2 + 8, -placaH / 2 + 8, placaW - 16, placaH - 16);
+
+        ctx.beginPath();
+        ctx.moveTo(-placaW / 2 + 30, 5);
+        ctx.lineTo(placaW / 2 - 30, 5);
+        ctx.strokeStyle = 'rgba(148, 163, 184, 0.3)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Fecha y Hora
+        const fechaTexto = formatearFechaConDia(p.fecha, p.hora).toUpperCase();
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '400 52px "Anton", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(`📅  ${fechaTexto}`, 0, -45);
+
+        // Campo de fútbol
+        let campoTexto = (p.campo || 'CAMPO POR CONFIRMAR').toUpperCase();
+        campoTexto = campoTexto.replace(/\(HA\)\s*\(HA\)/gi, '(HA)');
         ctx.fillStyle = '#e2e8f0';
-        ctx.font = 'bold 30px sans-serif';
-        dibujarTextoMultilinea(ctx, `📍 ${p.campo || 'Campo por confirmar'}`, W / 2, 1155, W - 220, 40);
+        ctx.font = '700 34px "Oswald", sans-serif';
+        ctx.fillText(`📍 ${campoTexto}`, 0, 52);
+        ctx.restore();
 
-        // Pie de cartel
-        ctx.fillStyle = 'rgba(148, 163, 184, 0.75)';
-        ctx.font = 'bold 22px sans-serif';
-        ctx.fillText('¡VAMOS UGENA! · #63', W / 2, 1282);
+        // 10. PIE DE CARTEL
+        drawSportText('¡VAMOS UGENA! · #63', W / 2, 1285, '700 30px "Oswald", sans-serif', '#cbd5e1', 6, 8);
 
-        // Actualizar imagen previa
         preview.src = canvas.toDataURL('image/png');
       };
 
-      // Cargar escudo desde la misma ruta
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.onload = () => dibujarContenido(img);
-      img.onerror = () => dibujarContenido(null);
-      img.src = 'escudo.png';
-    }
+      // Cargar escudo y posible fondo personalizado
+      let escudoImg = null;
+      let fondoImg = null;
+      let cargados = 0;
 
-    function roundRect(ctx, x, y, width, height, radius, fill, stroke, strokeColor, lineWidth) {
-      ctx.beginPath();
-      ctx.moveTo(x + radius, y);
-      ctx.lineTo(x + width - radius, y);
-      ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
-      ctx.lineTo(x + width, y + height - radius);
-      ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-      ctx.lineTo(x + radius, y + height);
-      ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-      ctx.lineTo(x, y + radius);
-      ctx.quadraticCurveTo(x, y, x + radius, y);
-      ctx.closePath();
-      if (fill) ctx.fill();
-      if (stroke) {
-        ctx.strokeStyle = strokeColor || '#ffffff';
-        ctx.lineWidth = lineWidth || 2;
-        ctx.stroke();
-      }
-    }
-
-    function dibujarTextoMultilinea(ctx, texto, x, y, maxWidth, lineHeight) {
-      const palabras = texto.split(' ');
-      let linea = '';
-      const lineas = [];
-
-      for (let n = 0; n < palabras.length; n++) {
-        const prueba = linea + palabras[n] + ' ';
-        const metrics = ctx.measureText(prueba);
-        if (metrics.width > maxWidth && n > 0) {
-          lineas.push(linea.trim());
-          linea = palabras[n] + ' ';
-        } else {
-          linea = prueba;
+      const checkReady = () => {
+        cargados++;
+        if (cargados === 2) {
+          if (document.fonts && document.fonts.ready) {
+            document.fonts.ready.then(() => dibujarEscena(escudoImg, fondoImg));
+          } else {
+            dibujarEscena(escudoImg, fondoImg);
+          }
         }
-      }
-      lineas.push(linea.trim());
+      };
 
-      const offsetInicio = ((lineas.length - 1) * lineHeight) / 2;
-      lineas.forEach((l, i) => {
-        ctx.fillText(l, x, y - offsetInicio + (i * lineHeight));
-      });
+      const img1 = new Image();
+      img1.crossOrigin = 'anonymous';
+      img1.onload = () => { escudoImg = img1; checkReady(); };
+      img1.onerror = () => { checkReady(); };
+      img1.src = 'escudo.png';
+
+      const img2 = new Image();
+      img2.crossOrigin = 'anonymous';
+      img2.onload = () => { fondoImg = img2; checkReady(); };
+      img2.onerror = () => { checkReady(); };
+      img2.src = 'fondo-cartel.jpg';
+    }
+
+    function dibujarFondoEstadioProcedural(ctx, W, H) {
+      const sky = ctx.createLinearGradient(0, 0, 0, H);
+      sky.addColorStop(0, '#020617');
+      sky.addColorStop(0.45, '#0c4a6e');
+      sky.addColorStop(0.75, '#0369a1');
+      sky.addColorStop(1, '#064e3b');
+      ctx.fillStyle = sky;
+      ctx.fillRect(0, 0, W, H);
+
+      const dibujarFoco = (fx, fy) => {
+        const beam = ctx.createRadialGradient(fx, fy, 10, fx, fy, 750);
+        beam.addColorStop(0, 'rgba(255, 255, 255, 0.95)');
+        beam.addColorStop(0.15, 'rgba(186, 230, 253, 0.55)');
+        beam.addColorStop(0.5, 'rgba(14, 165, 233, 0.15)');
+        beam.addColorStop(1, 'rgba(14, 165, 233, 0)');
+        ctx.fillStyle = beam;
+        ctx.fillRect(0, 0, W, H);
+      };
+      dibujarFoco(80, 490);
+      dibujarFoco(W - 80, 490);
+
+      ctx.save();
+      const grassGrad = ctx.createLinearGradient(0, 880, 0, H);
+      grassGrad.addColorStop(0, '#0284c7');
+      grassGrad.addColorStop(0.35, '#0f766e');
+      grassGrad.addColorStop(1, '#022c22');
+      ctx.fillStyle = grassGrad;
+      ctx.fillRect(0, 900, W, H - 900);
+
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.moveTo(W / 2, 900);
+      ctx.lineTo(W / 2, H);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.ellipse(W / 2, 1020, 260, 75, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+
+      const coloresChispas = ['#fb923c', '#f97316', '#fde047', '#38bdf8'];
+      for (let i = 0; i < 65; i++) {
+        const cx = Math.random() * W;
+        const cy = Math.random() * H;
+        const r = Math.random() * 4 + 1.5;
+        ctx.fillStyle = coloresChispas[i % coloresChispas.length];
+        ctx.globalAlpha = Math.random() * 0.8 + 0.2;
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
     }
 
     function descargarCartel() {
