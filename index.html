@@ -287,7 +287,7 @@
 
   <script>
     const ID_HOJA = "13hXI7RhIPz9SvvFghuCedKNm6aC-HxTdXkasN5afS8g";
-    const APP_VERSION = "v1.8.0";
+    const APP_VERSION = "v1.8.1";
     const elVer = document.getElementById('txt-version');
     if (elVer) elVer.innerText = APP_VERSION;
 
@@ -836,7 +836,7 @@
       renderGoleadores();
     }
 
-// ==========================================
+    // ==========================================
     // GENERACIÓN DE CARTEL ÉPICO EN CANVAS (HORIZONTAL Y FUENTES FIJAS)
     // ==========================================
     async function generarCartelPartido() {
@@ -856,7 +856,7 @@
         badge.innerText = p ? `Jornada ${p.jornada}` : "Sin pendientes";
       }
 
-      // 1. FORZAR DESCARGA DE FUENTES ANTES DE DIBUJAR (Evita que cambie al 2º clic)
+      // 1. FORZAR DESCARGA DE FUENTES ANTES DE DIBUJAR (Evita salto visual entre 1º y 2º toque)
       try {
         if (document.fonts) {
           await Promise.all([
@@ -875,7 +875,6 @@
         // 2. CAPA DE FONDO LUMINOSA Y NÍTIDA
         if (imgFondo) {
           ctx.drawImage(imgFondo, 0, 0, W, H);
-          // Degradado sutil solo en los bordes superior e inferior para legibilidad, dejando el estadio y césped bien visibles
           const topGrad = ctx.createLinearGradient(0, 0, 0, 420);
           topGrad.addColorStop(0, 'rgba(2, 6, 23, 0.72)');
           topGrad.addColorStop(1, 'rgba(2, 6, 23, 0)');
@@ -962,7 +961,7 @@
           return;
         }
 
-        // 6. DESTELLO SUTIL DETRÁS DEL VS (Sin tapar los focos del estadio)
+        // 6. DESTELLO SUTIL DETRÁS DEL VS
         const glow = ctx.createRadialGradient(W / 2, 680, 5, W / 2, 680, 250);
         glow.addColorStop(0, 'rgba(255, 255, 255, 0.75)');
         glow.addColorStop(0.4, 'rgba(56, 189, 248, 0.3)');
@@ -1009,7 +1008,7 @@
         const fontVis = visNombre.length > 20 ? '400 78px "Anton", sans-serif' : '400 98px "Anton", sans-serif';
         drawSportText(visNombre, W / 2, 825, fontVis, '#ffffff', 15, 20);
 
-        // 10. PLACA TRANSLÚCIDA COMPACTA EN LA BASE (Deja ver el césped y las líneas del campo)
+        // 10. PLACA TRANSLÚCIDA COMPACTA EN LA BASE (Deja ver el césped y líneas del campo)
         ctx.save();
         ctx.translate(W / 2, 1165);
 
@@ -1020,14 +1019,10 @@
         ctx.shadowBlur = 20;
         ctx.shadowOffsetY = 8;
 
-        // Fondo semitransparente para que se vea el césped detrás
         ctx.fillStyle = 'rgba(9, 13, 22, 0.68)';
         roundRect(ctx, -placaW / 2, -placaH / 2, placaW, placaH, 20, true, false);
 
-        // Borde fino elegante
         ctx.shadowColor = 'transparent';
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
-        ctx.lineWidth = 3;
         roundRect(ctx, -placaW / 2, -placaH / 2, placaW, placaH, 20, false, true, 'rgba(255, 255, 255, 0.35)', 3);
 
         // Fecha y Hora
@@ -1075,6 +1070,131 @@
       img2.onload = () => { fondoImg = img2; checkReady(); };
       img2.onerror = () => { checkReady(); };
       img2.src = 'fondo-cartel.jpg';
+    }
+
+    function dibujarFondoEstadioProcedural(ctx, W, H) {
+      const sky = ctx.createLinearGradient(0, 0, 0, H);
+      sky.addColorStop(0, '#020617');
+      sky.addColorStop(0.45, '#0c4a6e');
+      sky.addColorStop(0.75, '#0369a1');
+      sky.addColorStop(1, '#064e3b');
+      ctx.fillStyle = sky;
+      ctx.fillRect(0, 0, W, H);
+
+      const dibujarFoco = (fx, fy) => {
+        const beam = ctx.createRadialGradient(fx, fy, 10, fx, fy, 750);
+        beam.addColorStop(0, 'rgba(255, 255, 255, 0.95)');
+        beam.addColorStop(0.15, 'rgba(186, 230, 253, 0.55)');
+        beam.addColorStop(0.5, 'rgba(14, 165, 233, 0.15)');
+        beam.addColorStop(1, 'rgba(14, 165, 233, 0)');
+        ctx.fillStyle = beam;
+        ctx.fillRect(0, 0, W, H);
+      };
+      dibujarFoco(80, 490);
+      dibujarFoco(W - 80, 490);
+
+      ctx.save();
+      const grassGrad = ctx.createLinearGradient(0, 880, 0, H);
+      grassGrad.addColorStop(0, '#0284c7');
+      grassGrad.addColorStop(0.35, '#0f766e');
+      grassGrad.addColorStop(1, '#022c22');
+      ctx.fillStyle = grassGrad;
+      ctx.fillRect(0, 900, W, H - 900);
+
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.moveTo(W / 2, 900);
+      ctx.lineTo(W / 2, H);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.ellipse(W / 2, 1020, 260, 75, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+
+      const coloresChispas = ['#fb923c', '#f97316', '#fde047', '#38bdf8'];
+      for (let i = 0; i < 65; i++) {
+        const cx = Math.random() * W;
+        const cy = Math.random() * H;
+        const r = Math.random() * 4 + 1.5;
+        ctx.fillStyle = coloresChispas[i % coloresChispas.length];
+        ctx.globalAlpha = Math.random() * 0.8 + 0.2;
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    function roundRect(ctx, x, y, width, height, radius, fill, stroke, strokeColor, lineWidth) {
+      ctx.beginPath();
+      ctx.moveTo(x + radius, y);
+      ctx.lineTo(x + width - radius, y);
+      ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+      ctx.lineTo(x + width, y + height - radius);
+      ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+      ctx.lineTo(x + radius, y + height);
+      ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+      ctx.lineTo(x, y + radius);
+      ctx.quadraticCurveTo(x, y, x + radius, y);
+      ctx.closePath();
+      if (fill) ctx.fill();
+      if (stroke) {
+        ctx.strokeStyle = strokeColor || '#ffffff';
+        ctx.lineWidth = lineWidth || 2;
+        ctx.stroke();
+      }
+    }
+
+    function descargarCartel() {
+      const canvas = document.getElementById('cartel-canvas');
+      if (!canvas) return;
+      const link = document.createElement('a');
+      link.download = 'Cartel_Proximo_Partido_Ugena.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    }
+
+    async function compartirCartel() {
+      const canvas = document.getElementById('cartel-canvas');
+      if (!canvas) return;
+
+      canvas.toBlob(async (blob) => {
+        if (!blob) return;
+        const file = new File([blob], 'Cartel_Ugena.png', { type: 'image/png' });
+
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          try {
+            await navigator.share({
+              files: [file],
+              title: 'Próximo Partido - C.D. Ugena EFM A',
+              text: '¡No faltes al próximo partido del C.D. Ugena!'
+            });
+          } catch (err) {
+            console.log('Compartir cancelado');
+          }
+        } else {
+          descargarCartel();
+        }
+      }, 'image/png');
+    }
+
+    function switchTab(tabId, btn) {
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+      const target = document.getElementById('tab-' + tabId);
+      if (target) target.classList.add('active');
+
+      document.querySelectorAll('.nav-btn').forEach(b => {
+        b.className = "nav-btn flex flex-col items-center text-slate-400";
+      });
+      if (btn) btn.className = "nav-btn active flex flex-col items-center text-sky-400";
+
+      window.scrollTo({ top: 0, behavior: 'instant' });
+
+      if (tabId === 'cartel') {
+        generarCartelPartido();
+      }
     }
 
     // ==========================================
