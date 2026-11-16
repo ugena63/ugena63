@@ -836,8 +836,8 @@
       renderGoleadores();
     }
 
-    // ==========================================
-    // GENERACIÓN DE CARTEL ÉPICO EN CANVAS
+// ==========================================
+    // GENERACIÓN DE CARTEL ÉPICO EN CANVAS (HORIZONTAL)
     // ==========================================
     function generarCartelPartido() {
       const canvas = document.getElementById('cartel-canvas');
@@ -859,7 +859,7 @@
       const dibujarEscena = (imgEscudo, imgFondo) => {
         ctx.clearRect(0, 0, W, H);
 
-        // 1. CAPA DE FONDO (Usa 'fondo-cartel.jpg' si existe en GitHub, o genera estadio nocturno con focos y chispas)
+        // 1. CAPA DE FONDO
         if (imgFondo) {
           ctx.drawImage(imgFondo, 0, 0, W, H);
           const vig = ctx.createRadialGradient(W / 2, H / 2, 250, W / 2, H / 2, 850);
@@ -883,11 +883,10 @@
           ctx.restore();
         }
 
-        // Helper para textos con inclinación deportiva (-4.5 grados), borde grueso y sombra
+        // Helper para textos horizontales con borde grueso y sombra
         const drawSportText = (texto, x, y, font, fillStyle, strokeWidth = 10, shadowBlur = 18) => {
           ctx.save();
           ctx.translate(x, y);
-          ctx.rotate(-4.5 * Math.PI / 180);
           ctx.font = font;
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
@@ -895,8 +894,8 @@
 
           ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
           ctx.shadowBlur = shadowBlur;
-          ctx.shadowOffsetX = 6;
-          ctx.shadowOffsetY = 10;
+          ctx.shadowOffsetX = 4;
+          ctx.shadowOffsetY = 8;
 
           if (strokeWidth > 0) {
             ctx.strokeStyle = '#050811';
@@ -914,11 +913,10 @@
         drawSportText('PREFERENTE ALEVÍN · GRUPO 6', W / 2, 275, '700 36px "Oswald", sans-serif', '#e2e8f0', 7, 10);
         drawSportText("C.D. UGENA EFM 'A'", W / 2, 345, '400 84px "Anton", sans-serif', '#ffffff', 12, 16);
 
-        // 4. CINTA BLANCA RASGADA (JORNADA X · PRÓXIMO ENCUENTRO)
+        // 4. CINTA BLANCA HORIZONTAL (JORNADA X · PRÓXIMO ENCUENTRO)
         const cintaTexto = p ? `JORNADA ${p.jornada} · PRÓXIMO ENCUENTRO` : 'TEMPORADA FINALIZADA';
         ctx.save();
         ctx.translate(W / 2, 430);
-        ctx.rotate(-4.5 * Math.PI / 180);
         ctx.shadowColor = 'rgba(0,0,0,0.7)';
         ctx.shadowBlur = 15;
         ctx.shadowOffsetY = 6;
@@ -961,7 +959,6 @@
         // 7. "VS" METÁLICO DORADO / NARANJA CENTRAL
         ctx.save();
         ctx.translate(W / 2, 720);
-        ctx.rotate(-4.5 * Math.PI / 180);
         ctx.font = '400 155px "Anton", sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
@@ -993,10 +990,9 @@
         const fontVis = visNombre.length > 20 ? '400 84px "Anton", sans-serif' : '400 105px "Anton", sans-serif';
         drawSportText(visNombre, W / 2, 875, fontVis, '#ffffff', 16, 22);
 
-        // 9. PLACA METÁLICA INFERIOR (FECHA, HORA Y CAMPO)
+        // 9. PLACA METÁLICA INFERIOR HORIZONTAL (FECHA, HORA Y CAMPO)
         ctx.save();
         ctx.translate(W / 2, 1105);
-        ctx.rotate(-4.5 * Math.PI / 180);
 
         const placaW = 920;
         const placaH = 205;
@@ -1050,7 +1046,7 @@
         preview.src = canvas.toDataURL('image/png');
       };
 
-      // Cargar escudo y posible fondo personalizado
+      // Cargar escudo y fondo
       let escudoImg = null;
       let fondoImg = null;
       let cargados = 0;
